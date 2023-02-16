@@ -26,7 +26,10 @@ namespace Ensembl.Data.Services
         /// <returns>Found transcript.</returns>
         public Transcript Find(string id, bool expand = false)
         {
-            ArgumentException.ThrowIfNullOrEmpty(nameof(id));
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentException(nameof(id));
+            }
 
             var predicate = GetIdPredicate(id);
 
@@ -41,7 +44,10 @@ namespace Ensembl.Data.Services
         /// <returns>Array of found transcripts.</returns>
         public Transcript[] Find(IEnumerable<string> ids, bool expand = false)
         {
-            ArgumentException.ThrowIfNullOrEmpty(nameof(ids));
+            if (ids == null)
+            {
+                throw new ArgumentException(nameof(ids));
+            }
 
             var transcripts = ids.Distinct().Select(id => Find(id, expand));
 

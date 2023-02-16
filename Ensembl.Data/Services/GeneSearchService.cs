@@ -26,7 +26,10 @@ namespace Ensembl.Data.Services
         /// <returns>Found gene.</returns>
         public Gene Find(string id, bool expand = false)
 		{
-            ArgumentException.ThrowIfNullOrEmpty(nameof(id));
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentException(nameof(id));
+            }
 
             var predicate = GetIdPredicate(id);
 
@@ -41,9 +44,12 @@ namespace Ensembl.Data.Services
         /// <returns>Array of found genes.</returns>
         public Gene[] Find(IEnumerable<string> ids, bool expand = false)
 		{
-            ArgumentException.ThrowIfNullOrEmpty(nameof(ids));
+            if (ids == null)
+            {
+                throw new ArgumentException(nameof(ids));
+            }
 
-			var genes = ids.Distinct().Select(id => Find(id, expand));
+            var genes = ids.Distinct().Select(id => Find(id, expand));
 
 			return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
         }

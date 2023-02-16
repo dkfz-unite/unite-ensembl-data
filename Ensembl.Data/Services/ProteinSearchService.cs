@@ -25,7 +25,10 @@ namespace Ensembl.Data.Services
         /// <returns>Found protein.</returns>
         public Protein Find(string id, bool expand = false)
         {
-            ArgumentException.ThrowIfNullOrEmpty(nameof(id));
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentException(nameof(id));
+            }
 
             var predicate = GetIdPredicate(id);
 
@@ -40,7 +43,10 @@ namespace Ensembl.Data.Services
         /// <returns>Array of found proteins.</returns>
         public Protein[] Find(IEnumerable<string> ids, bool expand = false)
         {
-            ArgumentException.ThrowIfNullOrEmpty(nameof(ids));
+            if (ids == null)
+            {
+                throw new ArgumentException(nameof(ids));
+            }
 
             var proteins = ids.Distinct().Select(id => Find(id, expand));
 
