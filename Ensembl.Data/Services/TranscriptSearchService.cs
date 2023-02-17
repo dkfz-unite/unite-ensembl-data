@@ -24,6 +24,7 @@ namespace Ensembl.Data.Services
         /// <param name="id">Stable identifier (with or without version)</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Found transcript.</returns>
+        /// <exception cref="ArgumentException"></exception>
         public Transcript Find(string id, bool expand = false)
         {
             if (string.IsNullOrEmpty(id))
@@ -42,6 +43,7 @@ namespace Ensembl.Data.Services
         /// <param name="ids">Stable identifiers list (with or without versions)</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found transcripts.</returns>
+        /// <exception cref="ArgumentException"></exception>
         public Transcript[] Find(IEnumerable<string> ids, bool expand = false)
         {
             if (ids == null)
@@ -53,6 +55,45 @@ namespace Ensembl.Data.Services
 
             return transcripts.Where(transcript => transcript != null).DistinctBy(transcript => new { transcript.Id, transcript.Version }).ToArray();
         }
+
+        /// <summary>
+        /// Finds transcript by symbol.
+        /// </summary>
+        /// <param name="symbol">Symbol</param>
+        /// <param name="expand">Include child entries</param>
+        /// <returns>Found transcript.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public Transcript FindByName(string symbol, bool expand = false)
+        {
+            if (string.IsNullOrEmpty(symbol))
+            {
+                throw new ArgumentException(nameof(symbol));
+            }
+
+            var predicate = GetSymbolPredicate(symbol.Trim());
+
+            return Find(predicate, expand);
+        }
+
+        /// <summary>
+        /// Finds transcripts by their symbols.
+        /// </summary>
+        /// <param name="symbols">Symbols</param>
+        /// <param name="expand">Include child entries</param>
+        /// <returns>Array of found transcripts.</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public Transcript[] FindByName(IEnumerable<string> symbols, bool expand = false)
+        {
+            if (symbols == null)
+            {
+                throw new ArgumentException(nameof(symbols));
+            }
+
+            var genes = symbols.Distinct().Select(id => FindByName(id, expand));
+
+            return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
+        }
+
 
         internal Transcript Get(int id, bool expand = false)
         {
@@ -114,6 +155,7 @@ namespace Ensembl.Data.Services
                 .Sum(e => e.Exon.SeqRegionEnd - e.Exon.SeqRegionStart + 1);
         }
 
+
         private static Expression<Func<Entities.Transcript, bool>> GetIdPredicate(string id)
         {
             var identifier = IdentifierHelper.Extract(id);
@@ -121,6 +163,11 @@ namespace Ensembl.Data.Services
             return identifier.Version.HasValue
                 ? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
                 : (entity) => entity.StableId == identifier.Id;
+        }
+
+        private static Expression<Func<Entities.Transcript, bool>> GetSymbolPredicate(string symbol)
+        {
+            return (entity) => entity.Xref != null && entity.Xref.DisplayLabel == symbol;
         }
     }
 }

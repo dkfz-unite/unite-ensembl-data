@@ -23,6 +23,7 @@ namespace Ensembl.Data.Services
         /// <param name="id">Stable identifier (with or without version)</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Found protein.</returns>
+        /// <exception cref="ArgumentException"></exception>
         public Protein Find(string id, bool expand = false)
         {
             if (string.IsNullOrEmpty(id))
@@ -41,6 +42,7 @@ namespace Ensembl.Data.Services
         /// <param name="ids">Stable identifiers list (with or without versions)</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found proteins.</returns>
+        /// <exception cref="ArgumentException"></exception>
         public Protein[] Find(IEnumerable<string> ids, bool expand = false)
         {
             if (ids == null)
@@ -53,6 +55,7 @@ namespace Ensembl.Data.Services
             return proteins.Where(protein => protein != null).DistinctBy(protein => new { protein.Id, protein.Version }).ToArray();
         }
 
+
         internal Protein Get(int id, bool expand = false)
         {
             Expression<Func<Entities.Translation, bool>> predicate = (entity) => entity.TranslationId == id;
@@ -63,6 +66,7 @@ namespace Ensembl.Data.Services
         private Protein Find(Expression<Func<Entities.Translation, bool>> predicate, bool expand = false)
         {
             var entity = _dbContext.Translations
+                .Include(e => e.Transcript)
                 .Include(e => e.StartExon)
                 .Include(e => e.EndExon)
                 .FirstOrDefault(predicate);
@@ -137,6 +141,7 @@ namespace Ensembl.Data.Services
                 .Select(e => new ProteinFeature(e))
                 .ToArray();
         }
+
 
         private static Expression<Func<Entities.Translation, bool>> GetIdPredicate(string id)
         {

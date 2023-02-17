@@ -5,6 +5,7 @@ namespace Ensembl.Data.Models
     public record Protein
     {
         public string Id { get; set; }
+        public string TranscriptId { get; set; }
         public short? Version { get; set; }
         public int Start { get; set; }
         public int End { get; set; }
@@ -16,6 +17,8 @@ namespace Ensembl.Data.Models
         public Protein(Entities.Translation entity)
         {
             Id = entity.StableId;
+
+            TranscriptId = entity.Transcript?.StableId;
 
             Version = entity.Version;
 

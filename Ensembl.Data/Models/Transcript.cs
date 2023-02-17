@@ -5,6 +5,7 @@ namespace Ensembl.Data.Models
     public record Transcript
     {
         public string Id { get; set; }
+        public string GeneId { get; set; }
         public short? Version { get; set; }
         public string Chromosome { get; set; }
         public int Start { get; set; }
@@ -23,6 +24,7 @@ namespace Ensembl.Data.Models
         public Transcript(Entities.Transcript entity)
         {
             Id = entity.StableId;
+            GeneId = entity.Gene?.StableId;
             Version = entity.Version;
             Chromosome = entity.SeqRegion.Name;
             Start = entity.SeqRegionStart;
