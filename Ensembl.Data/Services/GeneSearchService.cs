@@ -9,13 +9,15 @@ namespace Ensembl.Data.Services
 	public class GeneSearchService
 	{
 		private readonly EnsemblDbContext _dbContext;
-		private readonly TranscriptSearchService _transcriptRepository;
+		private readonly TranscriptSearchService _transcriptSearchService;
+		private readonly ProteinSearchService _proteinSearchService;
 
 
 		public GeneSearchService(EnsemblDbContext dbContext)
 		{
 			_dbContext = dbContext;
-			_transcriptRepository = new TranscriptSearchService(dbContext);
+			_transcriptSearchService = new TranscriptSearchService(dbContext);
+			_proteinSearchService = new ProteinSearchService(dbContext);
         }
 
         /// <summary>
@@ -33,7 +35,7 @@ namespace Ensembl.Data.Services
 
             var predicate = GetIdPredicate(id);
 
-			return Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+			return Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
 		}
 
         /// <summary>
@@ -80,17 +82,69 @@ namespace Ensembl.Data.Services
 			}
         }
 
+        private Gene FindInArchive(string id, bool expand = false)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentException(nameof(id));
+            }
 
-		/// <summary>
-		/// Retrieves gene canonical transcript.
-		/// </summary>
-		/// <param name="entity">Gene</param>
-		/// <returns>Gene canonical transcript.</returns>
-		private Transcript GetTranscript(Entities.Gene entity)
+            var predicate = GetArchiveIdPredicate(id);
+
+            var entry = _dbContext.GeneArchives.FirstOrDefault(predicate);
+
+            if (entry != null)
+            {
+                var gene = Find(entry.GeneStableId, false);
+
+                if (gene != null && expand)
+                {
+                    gene.Transcript = FindTranscript(entry);
+                }
+
+                return gene;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+
+        /// <summary>
+        /// Retrieves gene canonical transcript.
+        /// </summary>
+        /// <param name="entity">Gene</param>
+        /// <returns>Gene canonical transcript.</returns>
+        private Transcript GetTranscript(Entities.Gene entity)
 		{
 			var id = entity.CanonicalTranscriptId;
 
-			return _transcriptRepository.Find(id, true);
+			return _transcriptSearchService.Get(id, true);
+		}
+
+        /// <summary>
+        /// Retrieves gene archive transcript.
+        /// </summary>
+        /// <param name="entity">Gene archive</param>
+        /// <returns>Gene archive transcript.</returns>
+		private Transcript FindTranscript(Entities.GeneArchive entity)
+		{
+            if (entity.TranslationStableId == null)
+            {
+                var transcript = _transcriptSearchService.Find(entity.TranscriptStableId, true);
+
+                return transcript;
+            }
+            else
+            {
+                var transcript = _transcriptSearchService.Find(entity.TranscriptStableId, false);
+
+                transcript.Protein = _proteinSearchService.Find(entity.TranslationStableId, true);
+
+                return transcript;
+            }
+			
 		}
 
 		/// <summary>
@@ -114,6 +168,15 @@ namespace Ensembl.Data.Services
 				? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
 				: (entity) => entity.StableId == identifier.Id;
 		}
+
+		private static Expression<Func<Entities.GeneArchive, bool>> GetArchiveIdPredicate(string id)
+		{
+            var identifier = IdentifierHelper.Extract(id);
+
+            return identifier.Version.HasValue
+                ? (entity) => entity.GeneStableId == identifier.Id && entity.GeneVersion == identifier.Version
+                : (entity) => entity.GeneStableId == identifier.Id;
+        }
     }
 }
 

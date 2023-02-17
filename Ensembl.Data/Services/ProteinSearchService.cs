@@ -53,7 +53,7 @@ namespace Ensembl.Data.Services
             return proteins.Where(protein => protein != null).DistinctBy(protein => new { protein.Id, protein.Version }).ToArray();
         }
 
-        internal Protein Find(int id, bool expand = false)
+        internal Protein Get(int id, bool expand = false)
         {
             Expression<Func<Entities.Translation, bool>> predicate = (entity) => entity.TranslationId == id;
 

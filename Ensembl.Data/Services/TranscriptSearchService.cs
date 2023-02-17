@@ -54,7 +54,7 @@ namespace Ensembl.Data.Services
             return transcripts.Where(transcript => transcript != null).DistinctBy(transcript => new { transcript.Id, transcript.Version }).ToArray();
         }
 
-        internal Transcript Find(int id, bool expand = false)
+        internal Transcript Get(int id, bool expand = false)
         {
             Expression<Func<Entities.Transcript, bool>> predicate = (entity) => entity.TranscriptId == id;
 
@@ -98,7 +98,7 @@ namespace Ensembl.Data.Services
         {
             var id = entity.CanonicalTranslationId;
 
-            return id == null ? null : _proteinRepository.Find(id.Value, true);
+            return id == null ? null : _proteinRepository.Get(id.Value, true);
         }
 
         /// <summary>
