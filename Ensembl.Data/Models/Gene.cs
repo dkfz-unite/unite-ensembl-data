@@ -4,6 +4,7 @@ namespace Ensembl.Data.Models
 {
     public record Gene
     {
+        public string Request { get; set; }
         public string Id { get; set; }
         public short? Version { get; set; }
         public string Chromosome { get; set; }

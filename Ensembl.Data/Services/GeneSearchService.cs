@@ -37,8 +37,15 @@ namespace Ensembl.Data.Services
 
             var predicate = GetIdPredicate(id);
 
-            return Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
-		}
+            var gene = Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+
+            if (gene != null)
+            {
+                gene.Request = id;
+            }
+
+            return gene;
+        }
 
         /// <summary>
         /// Finds genes by their Ensembl stable identifiers.
@@ -75,7 +82,14 @@ namespace Ensembl.Data.Services
 
             var predicate = GetSymbolPredicate(symbol.Trim());
 
-            return Find(predicate, expand);
+            var gene = Find(predicate, expand);
+
+            if (gene != null)
+            {
+                gene.Request = symbol;
+            }
+
+            return gene;
         }
 
         /// <summary>

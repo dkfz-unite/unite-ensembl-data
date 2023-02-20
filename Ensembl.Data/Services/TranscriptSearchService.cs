@@ -34,7 +34,14 @@ namespace Ensembl.Data.Services
 
             var predicate = GetIdPredicate(id);
 
-            return Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            var transcript = Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+
+            if (transcript != null)
+            {
+                transcript.Request = id;
+            }
+
+            return transcript;
         }
 
         /// <summary>
@@ -72,7 +79,14 @@ namespace Ensembl.Data.Services
 
             var predicate = GetSymbolPredicate(symbol.Trim());
 
-            return Find(predicate, expand);
+            var transcript = Find(predicate, expand);
+
+            if (transcript != null)
+            {
+                transcript.Request = symbol;
+            }
+
+            return transcript;
         }
 
         /// <summary>

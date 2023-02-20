@@ -33,7 +33,14 @@ namespace Ensembl.Data.Services
 
             var predicate = GetIdPredicate(id);
 
-            return Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            var protein = Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+
+            if (protein != null)
+            {
+                protein.Request = id;
+            }
+
+            return protein;
         }
 
         /// <summary>

@@ -4,6 +4,7 @@ namespace Ensembl.Data.Models
 {
     public record Transcript
     {
+        public string Request { get; set; }
         public string Id { get; set; }
         public string GeneId { get; set; }
         public short? Version { get; set; }

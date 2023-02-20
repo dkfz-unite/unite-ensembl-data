@@ -4,6 +4,7 @@ namespace Ensembl.Data.Models
 {
     public record Protein
     {
+        public string Request { get; set; }
         public string Id { get; set; }
         public string TranscriptId { get; set; }
         public short? Version { get; set; }
