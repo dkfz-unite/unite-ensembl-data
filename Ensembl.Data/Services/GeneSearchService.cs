@@ -37,7 +37,7 @@ namespace Ensembl.Data.Services
 
             var predicate = GetIdPredicate(id);
 
-			return Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            return Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
 		}
 
         /// <summary>
@@ -54,9 +54,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var genes = ids.Distinct().Select(id => Find(id, expand));
+            var genes = ids.Distinct().Select(id => Find(id, expand)).ToArray();
 
-			return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
+            return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
         }
 
         /// <summary>
