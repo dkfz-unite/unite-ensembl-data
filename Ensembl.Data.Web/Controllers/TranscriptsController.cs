@@ -48,11 +48,11 @@ public class TranscriptsController : Controller
             return BadRequest("Some of transcript IDs are not set.");
         }
 
-        var models = _searchService.Find(ids, expand);
+        var models = _searchService.Find(ids.Distinct(), expand);
 
         if (models != null)
         {
-            return Json(models);
+            return Json(models.DistinctBy(model => model.Request));
         }
         else
         {
@@ -92,11 +92,11 @@ public class TranscriptsController : Controller
             return BadRequest("Some of transcript symbols are not set.");
         }
 
-        var models = _searchService.FindByName(symbols, expand);
+        var models = _searchService.FindByName(symbols.Distinct(), expand);
 
         if (models != null)
         {
-            return Json(models);
+            return Json(models.DistinctBy(model => model.Request));
         }
         else
         {

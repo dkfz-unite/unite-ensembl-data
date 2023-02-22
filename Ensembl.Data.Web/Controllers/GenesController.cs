@@ -48,11 +48,11 @@ public class GenesController : Controller
             return BadRequest("Some of gene IDs are not set.");
         }
 
-        var models = _searchService.Find(ids, expand);
+        var models = _searchService.Find(ids.Distinct(), expand);
 
         if (models != null)
         {
-            return Json(models);
+            return Json(models.DistinctBy(model => model.Request));
         }
         else
         {
@@ -92,11 +92,11 @@ public class GenesController : Controller
             return BadRequest("Some of gene symbols are not set.");
         }
 
-        var models = _searchService.FindByName(symbols, expand);
+        var models = _searchService.FindByName(symbols.Distinct(), expand);
 
         if (models != null)
         {
-            return Json(models);
+            return Json(models.DistinctBy(model => model.Request));
         }
         else
         {

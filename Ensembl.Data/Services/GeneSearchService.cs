@@ -3,13 +3,14 @@ using System.Linq.Expressions;
 using Ensembl.Data.Models;
 using Ensembl.Data.Services.Helpers;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Crypto;
 
 namespace Ensembl.Data.Services
 {
-	public class GeneSearchService
-	{
-		private readonly EnsemblDbContext _dbContext;
+    public class GeneSearchService
+    {
+        private int[] _coordinationSystems = { 2, 10004 };
+        private string[] _chromosomesNames = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y" };
+        private readonly EnsemblDbContext _dbContext;
 		private readonly TranscriptSearchService _transcriptSearchService;
 		private readonly ProteinSearchService _proteinSearchService;
 
@@ -35,9 +36,7 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var predicate = GetIdPredicate(id);
-
-            var gene = Find(predicate, expand) ?? FindInArchive(id, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            var gene = Find(GetFullIdPredicate(id), expand) ?? FindInArchive(id, expand) ?? Find(GetShortIdPredicate(id), expand);
 
             if (gene != null)
             {
@@ -61,9 +60,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var genes = ids.Distinct().Select(id => Find(id, expand)).ToArray();
+            var genes = ids.Select(id => Find(id, expand)).ToArray();
 
-            return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
+            return genes.Where(gene => gene != null).ToArray();
         }
 
         /// <summary>
@@ -106,9 +105,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(symbols));
             }
 
-            var genes = symbols.Distinct().Select(id => FindByName(id, expand));
+            var genes = symbols.Select(id => FindByName(id, expand));
 
-            return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
+            return genes.Where(gene => gene != null).ToArray();
         }
 
 
@@ -117,6 +116,8 @@ namespace Ensembl.Data.Services
             var entity = _dbContext.Genes
                 .Include(e => e.SeqRegion)
                 .Include(e => e.Xref)
+                .Where(e => _coordinationSystems.Contains(e.SeqRegion.CoordSystemId))
+                .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name))
                 .FirstOrDefault(predicate);
 
 			if (entity != null)
@@ -145,13 +146,15 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var predicate = GetArchiveIdPredicate(id);
+            var archiveIdPredicate = GetArchiveIdPredicate(id);
 
-            var entry = _dbContext.GeneArchives.FirstOrDefault(predicate);
+            var entry = _dbContext.GeneArchives.FirstOrDefault(archiveIdPredicate);
 
             if (entry != null)
             {
-                var gene = Find(entry.GeneStableId, false);
+                var idPredicate = GetShortIdPredicate(entry.GeneStableId);
+
+                var gene = Find(idPredicate, false);
 
                 if (gene != null && expand)
                 {
@@ -217,7 +220,7 @@ namespace Ensembl.Data.Services
 		}
 
 
-		private static Expression<Func<Entities.Gene, bool>> GetIdPredicate(string id)
+		private static Expression<Func<Entities.Gene, bool>> GetFullIdPredicate(string id)
 		{
 			var identifier = IdentifierHelper.Extract(id);
 
@@ -226,7 +229,14 @@ namespace Ensembl.Data.Services
 				: (entity) => entity.StableId == identifier.Id;
 		}
 
-		private static Expression<Func<Entities.GeneArchive, bool>> GetArchiveIdPredicate(string id)
+        private static Expression<Func<Entities.Gene, bool>> GetShortIdPredicate(string id)
+        {
+            var identifier = IdentifierHelper.Extract(id);
+
+            return (entity) => entity.StableId == identifier.Id;
+        }
+
+        private static Expression<Func<Entities.GeneArchive, bool>> GetArchiveIdPredicate(string id)
 		{
             var identifier = IdentifierHelper.Extract(id);
 

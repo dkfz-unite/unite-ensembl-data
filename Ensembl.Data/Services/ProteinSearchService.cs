@@ -31,9 +31,7 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var predicate = GetIdPredicate(id);
-
-            var protein = Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            var protein = Find(GetFullIdPredicate(id), expand) ?? Find(GetShortIdPredicate(id), expand);
 
             if (protein != null)
             {
@@ -57,9 +55,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var proteins = ids.Distinct().Select(id => Find(id, expand));
+            var proteins = ids.Select(id => Find(id, expand));
 
-            return proteins.Where(protein => protein != null).DistinctBy(protein => new { protein.Id, protein.Version }).ToArray();
+            return proteins.Where(protein => protein != null).ToArray();
         }
 
 
@@ -150,13 +148,20 @@ namespace Ensembl.Data.Services
         }
 
 
-        private static Expression<Func<Entities.Translation, bool>> GetIdPredicate(string id)
+        private static Expression<Func<Entities.Translation, bool>> GetFullIdPredicate(string id)
         {
             var identifier = IdentifierHelper.Extract(id);
 
             return identifier.Version.HasValue
                 ? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
                 : (entity) => entity.StableId == identifier.Id;
+        }
+
+        private static Expression<Func<Entities.Translation, bool>> GetShortIdPredicate(string id)
+        {
+            var identifier = IdentifierHelper.Extract(id);
+
+            return (entity) => entity.StableId == identifier.Id;
         }
     }
 }

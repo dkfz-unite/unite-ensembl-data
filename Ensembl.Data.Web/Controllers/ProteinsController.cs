@@ -48,11 +48,11 @@ public class ProteinsController : Controller
             return BadRequest("Some of protein IDs are not set.");
         }
 
-        var models = _searchService.Find(ids, expand);
+        var models = _searchService.Find(ids.Distinct(), expand);
 
         if (models != null)
         {
-            return Json(models);
+            return Json(models.DistinctBy(model => model.Request));
         }
         else
         {

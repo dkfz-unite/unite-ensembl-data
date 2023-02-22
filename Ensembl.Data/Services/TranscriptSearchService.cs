@@ -8,6 +8,8 @@ namespace Ensembl.Data.Services
 {
 	public class TranscriptSearchService
 	{
+        private int[] _coordinationSystems = { 2, 10004 };
+        private string[] _chromosomesNames = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y" };
         private readonly EnsemblDbContext _dbContext;
         private readonly ProteinSearchService _proteinRepository;
 
@@ -32,9 +34,7 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var predicate = GetIdPredicate(id);
-
-            var transcript = Find(predicate, expand) ?? Find(IdentifierHelper.Extract(id).Id, expand);
+            var transcript = Find(GetFullIdPredicate(id), expand) ?? Find(GetShortIdPredicate(id), expand);
 
             if (transcript != null)
             {
@@ -58,9 +58,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var transcripts = ids.Distinct().Select(id => Find(id, expand));
+            var transcripts = ids.Select(id => Find(id, expand));
 
-            return transcripts.Where(transcript => transcript != null).DistinctBy(transcript => new { transcript.Id, transcript.Version }).ToArray();
+            return transcripts.Where(transcript => transcript != null).ToArray();
         }
 
         /// <summary>
@@ -103,9 +103,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(symbols));
             }
 
-            var genes = symbols.Distinct().Select(id => FindByName(id, expand));
+            var transcripts = symbols.Select(id => FindByName(id, expand));
 
-            return genes.Where(gene => gene != null).DistinctBy(gene => new { gene.Id, gene.Version }).ToArray();
+            return transcripts.Where(transcript => transcript != null).ToArray();
         }
 
 
@@ -122,6 +122,8 @@ namespace Ensembl.Data.Services
                 .Include(e => e.Gene)
                 .Include(e => e.SeqRegion)
                 .Include(e => e.Xref)
+                .Where(e => _coordinationSystems.Contains(e.SeqRegion.CoordSystemId))
+                .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name))
                 .FirstOrDefault(predicate);
 
             if (entity != null)
@@ -170,13 +172,20 @@ namespace Ensembl.Data.Services
         }
 
 
-        private static Expression<Func<Entities.Transcript, bool>> GetIdPredicate(string id)
+        private static Expression<Func<Entities.Transcript, bool>> GetFullIdPredicate(string id)
         {
             var identifier = IdentifierHelper.Extract(id);
 
             return identifier.Version.HasValue
                 ? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
                 : (entity) => entity.StableId == identifier.Id;
+        }
+
+        private static Expression<Func<Entities.Transcript, bool>> GetShortIdPredicate(string id)
+        {
+            var identifier = IdentifierHelper.Extract(id);
+
+            return (entity) => entity.StableId == identifier.Id;
         }
 
         private static Expression<Func<Entities.Transcript, bool>> GetSymbolPredicate(string symbol)
