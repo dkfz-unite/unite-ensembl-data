@@ -16,7 +16,7 @@ public class ProteinsController : Controller
     }
 
 
-    [HttpGet("{id}")]
+    [HttpGet("id/{id}")]
     public IActionResult Find(string id, bool expand = false)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -36,7 +36,7 @@ public class ProteinsController : Controller
         }
     }
 
-    [HttpPost("")]
+    [HttpPost("id")]
     public IActionResult FindAll([FromBody] string[] ids, bool expand = false)
     {
         if (ids == null)
@@ -52,7 +52,7 @@ public class ProteinsController : Controller
 
         if (models != null)
         {
-            return Json(models.DistinctBy(model => model.Request));
+            return Json(models);
         }
         else
         {

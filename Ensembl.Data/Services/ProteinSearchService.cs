@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
 using Ensembl.Data.Models;
-using Ensembl.Data.Services.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ensembl.Data.Services
@@ -20,7 +19,7 @@ namespace Ensembl.Data.Services
         /// <summary>
         /// Finds protein by Ensembl stable identifier.
         /// </summary>
-        /// <param name="id">Stable identifier (with or without version)</param>
+        /// <param name="id">Stable identifier</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Found protein.</returns>
         /// <exception cref="ArgumentException"></exception>
@@ -31,20 +30,15 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var protein = Find(GetFullIdPredicate(id), expand) ?? Find(GetShortIdPredicate(id), expand);
+            var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
 
-            if (protein != null)
-            {
-                protein.Request = id;
-            }
-
-            return protein;
+            return Convert(entity, expand);
         }
 
         /// <summary>
         /// Finds proteins by their stable identifiers.
         /// </summary>
-        /// <param name="ids">Stable identifiers list (with or without versions)</param>
+        /// <param name="ids">Stable identifiers list</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found proteins.</returns>
         /// <exception cref="ArgumentException"></exception>
@@ -55,27 +49,29 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var proteins = ids.Select(id => Find(id, expand));
+            var entities = GetQuery().Where(entity => ids.Contains(entity.StableId)).ToArray();
 
-            return proteins.Where(protein => protein != null).ToArray();
+            return entities.Select(entity => Convert(entity, expand)).ToArray();
         }
-
 
         internal Protein Get(int id, bool expand = false)
         {
-            Expression<Func<Entities.Translation, bool>> predicate = (entity) => entity.TranslationId == id;
+            var entity = GetQuery().FirstOrDefault(e => e.TranslationId == id);
 
-            return Find(predicate, expand);
+            return Convert(entity, expand);
         }
 
-        private Protein Find(Expression<Func<Entities.Translation, bool>> predicate, bool expand = false)
+
+        private IQueryable<Entities.Translation> GetQuery()
         {
-            var entity = _dbContext.Translations
+            return _dbContext.Translations
                 .Include(e => e.Transcript)
                 .Include(e => e.StartExon)
-                .Include(e => e.EndExon)
-                .FirstOrDefault(predicate);
+                .Include(e => e.EndExon);
+        }
 
+        private Protein Convert(Entities.Translation entity, bool expand = false)
+        {
             if (entity != null)
             {
                 var protein = new Protein(entity);
@@ -93,9 +89,7 @@ namespace Ensembl.Data.Services
             {
                 return null;
             }
-            
         }
-
 
         /// <summary>
         /// Retrieves number of amino acids in a protein.
@@ -108,8 +102,6 @@ namespace Ensembl.Data.Services
         {
             var length = 0;
 
-            var strand = entity.StartExon.SeqRegionStrand;
-
             var exons = _dbContext.ExonTranscripts
                     .Include(e => e.Exon)
                     .Where(e => e.TranscriptId == entity.TranscriptId)
@@ -117,17 +109,17 @@ namespace Ensembl.Data.Services
                     .Where(e => e.Exon.SeqRegionEnd < end)
                     .Select(e => e.Exon);
 
-            if (strand == 1)
+            if (entity.StartExon.SeqRegionStrand == 1)
             {
                 length += entity.StartExon.SeqRegionEnd - start;
                 length += end - entity.EndExon.SeqRegionStart;
-                length += exons.Sum(e => e.SeqRegionEnd - e.SeqRegionStart + 1);
+                length += exons.Sum(exon => exon.SeqRegionEnd - exon.SeqRegionStart + 1);
             }
             else
             {
                 length += end - entity.StartExon.SeqRegionStart;
                 length += entity.EndExon.SeqRegionEnd - start;
-                length += exons.Sum(e => e.SeqRegionEnd - e.SeqRegionStart + 1);
+                length += exons.Sum(exon => exon.SeqRegionEnd - exon.SeqRegionStart + 1);
             }
 
             return length / 3;
@@ -145,23 +137,6 @@ namespace Ensembl.Data.Services
                 .Where(e => e.HitName.StartsWith("PF"))
                 .Select(e => new ProteinFeature(e))
                 .ToArray();
-        }
-
-
-        private static Expression<Func<Entities.Translation, bool>> GetFullIdPredicate(string id)
-        {
-            var identifier = IdentifierHelper.Extract(id);
-
-            return identifier.Version.HasValue
-                ? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
-                : (entity) => entity.StableId == identifier.Id;
-        }
-
-        private static Expression<Func<Entities.Translation, bool>> GetShortIdPredicate(string id)
-        {
-            var identifier = IdentifierHelper.Extract(id);
-
-            return (entity) => entity.StableId == identifier.Id;
         }
     }
 }

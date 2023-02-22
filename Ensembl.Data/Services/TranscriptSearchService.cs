@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
 using Ensembl.Data.Models;
-using Ensembl.Data.Services.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ensembl.Data.Services
@@ -23,7 +22,7 @@ namespace Ensembl.Data.Services
         /// <summary>
         /// Finds transcript by Ensembl stable identifier.
         /// </summary>
-        /// <param name="id">Stable identifier (with or without version)</param>
+        /// <param name="id">Stable identifier</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Found transcript.</returns>
         /// <exception cref="ArgumentException"></exception>
@@ -34,20 +33,15 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(id));
             }
 
-            var transcript = Find(GetFullIdPredicate(id), expand) ?? Find(GetShortIdPredicate(id), expand);
+            var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
 
-            if (transcript != null)
-            {
-                transcript.Request = id;
-            }
-
-            return transcript;
+            return Convert(entity);
         }
 
         /// <summary>
         /// Finds transcripts by their Ensembl stable identifiers.
         /// </summary>
-        /// <param name="ids">Stable identifiers list (with or without versions)</param>
+        /// <param name="ids">Stable identifiers list</param>
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found transcripts.</returns>
         /// <exception cref="ArgumentException"></exception>
@@ -58,9 +52,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(ids));
             }
 
-            var transcripts = ids.Select(id => Find(id, expand));
+            var entities = GetQuery().Where(entity => ids.Contains(entity.StableId)).ToArray();
 
-            return transcripts.Where(transcript => transcript != null).ToArray();
+            return entities.Select(entity => Convert(entity, expand)).ToArray();
         }
 
         /// <summary>
@@ -77,16 +71,9 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(symbol));
             }
 
-            var predicate = GetSymbolPredicate(symbol.Trim());
+            var entity = GetQuery().FirstOrDefault(entity => entity.Xref.DisplayLabel == symbol);
 
-            var transcript = Find(predicate, expand);
-
-            if (transcript != null)
-            {
-                transcript.Request = symbol;
-            }
-
-            return transcript;
+            return Convert(entity);
         }
 
         /// <summary>
@@ -103,29 +90,31 @@ namespace Ensembl.Data.Services
                 throw new ArgumentException(nameof(symbols));
             }
 
-            var transcripts = symbols.Select(id => FindByName(id, expand));
+            var entities = GetQuery().Where(entity => symbols.Contains(entity.Xref.DisplayLabel)).ToArray();
 
-            return transcripts.Where(transcript => transcript != null).ToArray();
+            return entities.Select(entity => Convert(entity, expand)).ToArray();
         }
-
 
         internal Transcript Get(int id, bool expand = false)
         {
-            Expression<Func<Entities.Transcript, bool>> predicate = (entity) => entity.TranscriptId == id;
+            var entity = GetQuery().FirstOrDefault(entity => entity.TranscriptId == id);
 
-            return Find(predicate, expand);
+            return Convert(entity, expand);
         }
 
-        private Transcript Find(Expression<Func<Entities.Transcript, bool>> predicate, bool expand = false)
+
+        private IQueryable<Entities.Transcript> GetQuery()
         {
-            var entity = _dbContext.Transcripts
+            return _dbContext.Transcripts
                 .Include(e => e.Gene)
                 .Include(e => e.SeqRegion)
                 .Include(e => e.Xref)
                 .Where(e => _coordinationSystems.Contains(e.SeqRegion.CoordSystemId))
-                .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name))
-                .FirstOrDefault(predicate);
+                .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name));
+        }
 
+        private Transcript Convert(Entities.Transcript entity, bool expand = false)
+        {
             if (entity != null)
             {
                 var transcript = new Transcript(entity);
@@ -145,19 +134,6 @@ namespace Ensembl.Data.Services
             }
         }
 
-
-        /// <summary>
-        /// Retrieves transcript canonical protein.
-        /// </summary>
-        /// <param name="entity">Transcript</param>
-        /// <returns>Transcript canonical protein.</returns>
-        private Protein GetProtein(Entities.Transcript entity)
-        {
-            var id = entity.CanonicalTranslationId;
-
-            return id == null ? null : _proteinRepository.Get(id.Value, true);
-        }
-
         /// <summary>
         /// Retrieves exonic length of a transcript (SUM of lengths of all transcript exons).
         /// </summary>
@@ -171,26 +147,16 @@ namespace Ensembl.Data.Services
                 .Sum(e => e.Exon.SeqRegionEnd - e.Exon.SeqRegionStart + 1);
         }
 
-
-        private static Expression<Func<Entities.Transcript, bool>> GetFullIdPredicate(string id)
+        /// <summary>
+        /// Retrieves transcript canonical protein.
+        /// </summary>
+        /// <param name="entity">Transcript</param>
+        /// <returns>Transcript canonical protein.</returns>
+        private Protein GetProtein(Entities.Transcript entity)
         {
-            var identifier = IdentifierHelper.Extract(id);
+            var id = entity.CanonicalTranslationId;
 
-            return identifier.Version.HasValue
-                ? (entity) => entity.StableId == identifier.Id && entity.Version == identifier.Version
-                : (entity) => entity.StableId == identifier.Id;
-        }
-
-        private static Expression<Func<Entities.Transcript, bool>> GetShortIdPredicate(string id)
-        {
-            var identifier = IdentifierHelper.Extract(id);
-
-            return (entity) => entity.StableId == identifier.Id;
-        }
-
-        private static Expression<Func<Entities.Transcript, bool>> GetSymbolPredicate(string symbol)
-        {
-            return (entity) => entity.Xref != null && entity.Xref.DisplayLabel == symbol;
+            return id == null ? null : _proteinRepository.Get(id.Value, true);
         }
     }
 }

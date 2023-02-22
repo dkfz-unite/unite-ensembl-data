@@ -4,9 +4,7 @@ namespace Ensembl.Data.Models
 {
     public record Gene
     {
-        public string Request { get; set; }
         public string Id { get; set; }
-        public short? Version { get; set; }
         public string Chromosome { get; set; }
         public int Start { get; set; }
         public int End { get; set; }
@@ -23,7 +21,6 @@ namespace Ensembl.Data.Models
         public Gene(Entities.Gene entity)
         {
             Id = entity.StableId;
-            Version = entity.Version;
             Chromosome = entity.SeqRegion.Name;
             Start = entity.SeqRegionStart;
             End = entity.SeqRegionEnd;

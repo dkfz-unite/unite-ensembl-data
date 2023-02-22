@@ -4,10 +4,8 @@ namespace Ensembl.Data.Models
 {
     public record Protein
     {
-        public string Request { get; set; }
         public string Id { get; set; }
         public string TranscriptId { get; set; }
-        public short? Version { get; set; }
         public int Start { get; set; }
         public int End { get; set; }
         public int Length { get; set; }
@@ -20,8 +18,6 @@ namespace Ensembl.Data.Models
             Id = entity.StableId;
 
             TranscriptId = entity.Transcript?.StableId;
-
-            Version = entity.Version;
 
             Start = entity.StartExon.SeqRegionStrand == 1
                 ? entity.StartExon != null ? entity.StartExon.SeqRegionStart + entity.SeqStart - 1 : 0
