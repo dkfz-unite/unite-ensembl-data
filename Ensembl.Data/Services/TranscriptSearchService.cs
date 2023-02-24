@@ -26,7 +26,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Found transcript.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Transcript Find(string id, bool expand = false)
+        public Transcript Find(string id, bool length = false, bool expand = false)
         {
             if (string.IsNullOrEmpty(id))
             {
@@ -35,7 +35,7 @@ namespace Ensembl.Data.Services
 
             var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
 
-            return Convert(entity);
+            return Convert(entity, length, expand);
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found transcripts.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Transcript[] Find(IEnumerable<string> ids, bool expand = false)
+        public Transcript[] Find(IEnumerable<string> ids, bool length = false, bool expand = false)
         {
             if (ids == null)
             {
@@ -54,7 +54,7 @@ namespace Ensembl.Data.Services
 
             var entities = GetQuery().Where(entity => ids.Contains(entity.StableId)).ToArray();
 
-            return entities.Select(entity => Convert(entity, expand)).ToArray();
+            return entities.Select(entity => Convert(entity, length, expand)).ToArray();
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Found transcript.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Transcript FindByName(string symbol, bool expand = false)
+        public Transcript FindByName(string symbol, bool length = false, bool expand = false)
         {
             if (string.IsNullOrEmpty(symbol))
             {
@@ -73,7 +73,7 @@ namespace Ensembl.Data.Services
 
             var entity = GetQuery().FirstOrDefault(entity => entity.Xref.DisplayLabel == symbol);
 
-            return Convert(entity);
+            return Convert(entity, length, expand);
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found transcripts.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Transcript[] FindByName(IEnumerable<string> symbols, bool expand = false)
+        public Transcript[] FindByName(IEnumerable<string> symbols, bool length = false, bool expand = false)
         {
             if (symbols == null)
             {
@@ -92,14 +92,14 @@ namespace Ensembl.Data.Services
 
             var entities = GetQuery().Where(entity => symbols.Contains(entity.Xref.DisplayLabel)).ToArray();
 
-            return entities.Select(entity => Convert(entity, expand)).ToArray();
+            return entities.Select(entity => Convert(entity, length, expand)).ToArray();
         }
 
-        internal Transcript Get(int id, bool expand = false)
+        internal Transcript Get(int id, bool length = false, bool expand = false)
         {
             var entity = GetQuery().FirstOrDefault(entity => entity.TranscriptId == id);
 
-            return Convert(entity, expand);
+            return Convert(entity, length, expand);
         }
 
 
@@ -113,13 +113,16 @@ namespace Ensembl.Data.Services
                 .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name));
         }
 
-        private Transcript Convert(Entities.Transcript entity, bool expand = false)
+        private Transcript Convert(Entities.Transcript entity, bool length = false, bool expand = false)
         {
             if (entity != null)
             {
                 var transcript = new Transcript(entity);
 
-                transcript.ExonicLength = GetExonicLength(entity);
+                if (length)
+                {
+                    transcript.ExonicLength = GetExonicLength(entity);
+                }
 
                 if (expand)
                 {

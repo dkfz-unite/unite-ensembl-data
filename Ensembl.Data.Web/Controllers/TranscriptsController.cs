@@ -17,14 +17,14 @@ public class TranscriptsController : Controller
 
 
     [HttpGet("id/{id}")]
-    public IActionResult Find(string id, bool expand = false)
+    public IActionResult Find(string id, bool length = false, bool expand = false)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
             return BadRequest("Transcript ID is not set.");
         }
 
-        var model = _searchService.Find(id, expand);
+        var model = _searchService.Find(id, length, expand);
 
         if (model != null)
         {
@@ -37,7 +37,7 @@ public class TranscriptsController : Controller
     }
 
     [HttpPost("id")]
-    public IActionResult FindAll([FromBody] string[] ids, bool expand = false)
+    public IActionResult FindAll([FromBody] string[] ids, bool length = false, bool expand = false)
     {
         if (ids == null)
         {
@@ -48,7 +48,7 @@ public class TranscriptsController : Controller
             return BadRequest("Some of transcript IDs are not set.");
         }
 
-        var models = _searchService.Find(ids.Distinct(), expand);
+        var models = _searchService.Find(ids.Distinct(), length, expand);
 
         if (models != null)
         {
@@ -61,14 +61,14 @@ public class TranscriptsController : Controller
     }
 
     [HttpGet("symbol/{symbol}")]
-    public IActionResult GetByName(string symbol, bool expand = false)
+    public IActionResult GetByName(string symbol, bool length = false, bool expand = false)
     {
         if (string.IsNullOrWhiteSpace(symbol))
         {
             return BadRequest("Transcript Symbol is not set.");
         }
 
-        var model = _searchService.FindByName(symbol, expand);
+        var model = _searchService.FindByName(symbol, length, expand);
 
         if (model != null)
         {
@@ -81,7 +81,7 @@ public class TranscriptsController : Controller
     }
 
     [HttpPost("symbol")]
-    public IActionResult FindAllByName([FromBody] string[] symbols, bool expand = false)
+    public IActionResult FindAllByName([FromBody] string[] symbols, bool length = false, bool expand = false)
     {
         if (symbols == null)
         {
@@ -92,7 +92,7 @@ public class TranscriptsController : Controller
             return BadRequest("Some of transcript symbols are not set.");
         }
 
-        var models = _searchService.FindByName(symbols.Distinct(), expand);
+        var models = _searchService.FindByName(symbols.Distinct(), length, expand);
 
         if (models != null)
         {

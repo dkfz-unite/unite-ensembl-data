@@ -28,7 +28,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Found gene.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Gene Find(string id, bool expand = false)
+        public Gene Find(string id, bool length = false, bool expand = false)
 		{
             if (string.IsNullOrEmpty(id))
             {
@@ -37,7 +37,7 @@ namespace Ensembl.Data.Services
 
             var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
 
-            return Convert(entity);
+            return Convert(entity, length, expand);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found genes.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Gene[] Find(IEnumerable<string> ids, bool expand = false)
+        public Gene[] Find(IEnumerable<string> ids, bool length = false, bool expand = false)
 		{
             if (ids == null)
             {
@@ -56,7 +56,7 @@ namespace Ensembl.Data.Services
 
             var entities = GetQuery().Where(entity => ids.Contains(entity.StableId)).ToArray();
 
-            return entities.Select(entity => Convert(entity, expand)).ToArray();
+            return entities.Select(entity => Convert(entity, length, expand)).ToArray();
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Found gene.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Gene FindByName(string symbol, bool expand = false)
+        public Gene FindByName(string symbol, bool length = false, bool expand = false)
         {
             if (string.IsNullOrEmpty(symbol))
             {
@@ -75,7 +75,7 @@ namespace Ensembl.Data.Services
 
             var entity = GetQuery().FirstOrDefault(entity => entity.Xref.DisplayLabel == symbol);
 
-            return Convert(entity);
+            return Convert(entity, length, expand);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Ensembl.Data.Services
         /// <param name="expand">Include child entries</param>
         /// <returns>Array of found genes.</returns>
         /// <exception cref="ArgumentException"></exception>
-        public Gene[] FindByName(IEnumerable<string> symbols, bool expand = false)
+        public Gene[] FindByName(IEnumerable<string> symbols, bool length = false, bool expand = false)
         {
             if (symbols == null)
             {
@@ -94,7 +94,7 @@ namespace Ensembl.Data.Services
 
             var entities = GetQuery().Where(entity => symbols.Contains(entity.Xref.DisplayLabel)).ToArray();
 
-            return entities.Select(entity => Convert(entity, expand)).ToArray();
+            return entities.Select(entity => Convert(entity, length, expand)).ToArray();
         }
 
 
@@ -107,17 +107,20 @@ namespace Ensembl.Data.Services
                 .Where(e => _chromosomesNames.Contains(e.SeqRegion.Name));
         }
 
-		private Gene Convert(Entities.Gene entity, bool expand = false)
+		private Gene Convert(Entities.Gene entity, bool length = false, bool expand = false)
 		{
 			if (entity != null)
 			{
                 var gene = new Gene(entity);
 
-                gene.ExonicLength = GetExonicLength(entity);
+                if (length)
+                {
+                    gene.ExonicLength = GetExonicLength(entity);
+                }
 
                 if (expand)
                 {
-                    gene.Transcript = GetTranscript(entity);
+                    gene.Transcript = GetTranscript(entity, length);
                 }
 
 				return gene;
@@ -146,11 +149,11 @@ namespace Ensembl.Data.Services
         /// </summary>
         /// <param name="entity">Gene</param>
         /// <returns>Gene canonical transcript.</returns>
-        private Transcript GetTranscript(Entities.Gene entity)
+        private Transcript GetTranscript(Entities.Gene entity, bool length = false)
 		{
 			var id = entity.CanonicalTranscriptId;
 
-			return _transcriptSearchService.Get(id, true);
+			return _transcriptSearchService.Get(id, length, true);
 		}
     }
 }
