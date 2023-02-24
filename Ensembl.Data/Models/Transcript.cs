@@ -30,7 +30,7 @@ namespace Ensembl.Data.Models
             Length = entity.SeqRegionEnd - entity.SeqRegionStart + 1;
             Strand = entity.SeqRegionStrand == 1 ? true : false;
             Biotype = entity.Biotype;
-            Symbol = entity.Xref.DisplayLabel;
+            Symbol = entity.Xref?.DisplayLabel;
             Description = entity.Description;
             IsCanonical = entity.Gene?.CanonicalTranscriptId == entity.TranscriptId;
         }
