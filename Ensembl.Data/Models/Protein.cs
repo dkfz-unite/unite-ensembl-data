@@ -9,6 +9,7 @@ namespace Ensembl.Data.Models
         public int Start { get; set; }
         public int End { get; set; }
         public int Length { get; set; }
+        public bool IsCanonical { get; set; }
 
         public ProteinFeature[] Features { get; set; }
 
@@ -18,6 +19,8 @@ namespace Ensembl.Data.Models
             Id = entity.StableId;
 
             TranscriptId = entity.Transcript?.StableId;
+
+            IsCanonical = entity.Transcript?.CanonicalTranslationId == entity.TranslationId;
 
             Start = entity.StartExon.SeqRegionStrand == 1
                 ? entity.StartExon != null ? entity.StartExon.SeqRegionStart + entity.SeqStart - 1 : 0
