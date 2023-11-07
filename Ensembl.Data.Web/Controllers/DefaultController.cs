@@ -13,4 +13,3 @@ public class DefaultController : Controller
 		return Json(date);
 	}
 }
-
