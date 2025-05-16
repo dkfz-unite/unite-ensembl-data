@@ -1,34 +1,73 @@
-name: Publish Docker Image
+name: Build Docker Images
 
 on:
   push:
-    branches: ['main']
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE: ${{ github.repository }}
 
 jobs:
-  build-and-push-image:
+  build-amd64:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Log in to the Container registry
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build amd64 image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE }}:amd64 \
+            --build-arg USER=${{ github.actor }} \
+            --build-arg TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            .
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE }}:amd64
+  build-arm64:
+    # runs-on: macos-latest
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build arm64 image
+        run: |
+          docker build \
+            --platform linux/arm64 \
+            -t ${{ env.REGISTRY }}/${{ env.IMAGE }}:arm64 \
+            --build-arg USER=${{ github.actor }} \
+            --build-arg TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            .
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE }}:arm64
+  create-manifest:
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          build-args: |
-            USER=${{ github.actor }}
-            TOKEN=${{ secrets.GITHUB_TOKEN }}
-          push: true
-          tags: ${{env.REGISTRY}}/${{github.repository}}
+      - name: Create and push manifest
+        run: |
+          docker buildx imagetools create \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:arm64
