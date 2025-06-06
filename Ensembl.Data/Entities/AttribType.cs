@@ -1,15 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("attrib_type")]
+public partial class AttribType
 {
-    public partial class AttribType
-    {
-        public short AttribTypeId { get; set; }
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-    }
+    [Column("attrib_type_id")]
+    [Key]
+    public short AttribTypeId { get; set; }
+
+    [Column("code")]
+    public string Code { get; set; }
+
+    [Column("name")]
+    public string Name { get; set; }
+
+    [Column("description")]
+    public string Description { get; set; }
 }

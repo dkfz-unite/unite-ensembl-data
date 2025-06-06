@@ -1,19 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("gene_archive")]
+public partial class GeneArchive
 {
-    public partial class GeneArchive
-    {
-        public string GeneStableId { get; set; }
-        public short GeneVersion { get; set; }
-        public string TranscriptStableId { get; set; }
-        public short TranscriptVersion { get; set; }
-        public string TranslationStableId { get; set; }
-        public short TranslationVersion { get; set; }
-        public int? PeptideArchiveId { get; set; }
-        public int MappingSessionId { get; set; }
-    }
+    [Column("gene_stable_id")]
+    [Key]
+    public string GeneStableId { get; set; }
+
+    [Column("gene_version")]
+    public short GeneVersion { get; set; }
+
+    [Column("transcript_stable_id")]
+    public string TranscriptStableId { get; set; }
+
+    [Column("transcript_version")]
+    public short TranscriptVersion { get; set; }
+
+    [Column("translation_stable_id")]
+    public string TranslationStableId { get; set; }
+
+    [Column("translation_version")]
+    public short TranslationVersion { get; set; }
+
+    [Column("peptide_archive_id")]
+    public int? PeptideArchiveId { get; set; }
+
+    [Column("mapping_session_id")]
+    public int MappingSessionId { get; set; }
 }

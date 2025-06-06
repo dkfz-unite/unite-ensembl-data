@@ -1,21 +1,39 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("external_db")]
+public partial class ExternalDb
 {
-    public partial class ExternalDb
-    {
-        public int ExternalDbId { get; set; }
-        public string DbName { get; set; }
-        public string DbRelease { get; set; }
-        public string Status { get; set; }
-        public int Priority { get; set; }
-        public string DbDisplayName { get; set; }
-        public string Type { get; set; }
-        public string SecondaryDbName { get; set; }
-        public string SecondaryDbTable { get; set; }
-        public string Description { get; set; }
-    }
+    [Column("external_db_id")]
+    [Key]
+    public int ExternalDbId { get; set; }
+
+    [Column("db_name")]
+    public string DbName { get; set; }
+
+    [Column("db_release")]
+    public string DbRelease { get; set; }
+
+    [Column("db_status")]
+    public string Status { get; set; }
+
+    [Column("priority")]
+    public int Priority { get; set; }
+
+    [Column("db_display_name")]
+    public string DbDisplayName { get; set; }
+
+    [Column("db_type")]
+    public string Type { get; set; }
+
+    [Column("secondary_db_name")]
+    public string SecondaryDbName { get; set; }
+
+    [Column("secondary_db_table")]
+    public string SecondaryDbTable { get; set; }
+
+    [Column("description")]
+    public string Description { get; set; }
 }

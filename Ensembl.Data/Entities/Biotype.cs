@@ -1,19 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("biotype")]
+public partial class Biotype
 {
-    public partial class Biotype
-    {
-        public int BiotypeId { get; set; }
-        public string Name { get; set; }
-        public string ObjectType { get; set; }
-        public int? AttribTypeId { get; set; }
-        public string Description { get; set; }
-        public string BiotypeGroup { get; set; }
-        public string SoAcc { get; set; }
-        public string SoTerm { get; set; }
-    }
+    [Column("biotype_id")]
+    [Key]
+    public int BiotypeId { get; set; }
+
+    [Column("name")]
+    public string Name { get; set; }
+
+    [Column("object_type")]
+    public string ObjectType { get; set; }
+
+    [Column("attrib_type_id")]
+    public int? AttribTypeId { get; set; }
+
+    [Column("description")]
+    public string Description { get; set; }
+
+    [Column("biotype_group")]
+    public string BiotypeGroup { get; set; }
+
+    [Column("so_acc")]
+    public string SoAcc { get; set; }
+
+    [Column("so_term")]
+    public string SoTerm { get; set; }
 }

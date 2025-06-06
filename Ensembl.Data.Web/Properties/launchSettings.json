@@ -1,33 +1,34 @@
 {
-  "$schema": "https://json.schemastore.org/launchsettings.json",
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
       "applicationUrl": "http://localhost:52123",
-      "sslPort": 0
+      "sslPort": 44325
     }
   },
   "profiles": {
-    "http": {
-      "commandName": "Project",
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": false,
       "launchUrl": "api",
-      "applicationUrl": "http://localhost:5200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ENSEMBL_RELEASE": "109_37",
+        "ENSEMBL_RELEASE": "113",
         "ENSEMBL_SQL_HOST": "localhost",
         "ENSEMBL_SQL_PORT": "3306",
         "ENSEMBL_SQL_USER": "root",
         "ENSEMBL_SQL_PASSWORD": "Long-pa55w0rd"
       }
     },
-    "IIS Express": {
-      "commandName": "IISExpress",
+    "Ensembl.Data.Web": {
+      "commandName": "Project",
+      "launchBrowser": false,
       "launchUrl": "api",
+      "applicationUrl": "http://localhost:5200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ENSEMBL_RELEASE": "109_37",
+        "ENSEMBL_RELEASE": "113",
         "ENSEMBL_SQL_HOST": "localhost",
         "ENSEMBL_SQL_PORT": "3306",
         "ENSEMBL_SQL_USER": "root",

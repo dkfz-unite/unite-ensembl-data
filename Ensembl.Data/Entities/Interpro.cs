@@ -1,13 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("interpro")]
+public partial class Interpro
 {
-    public partial class Interpro
-    {
-        public string InterproAc { get; set; }
-        public string Id { get; set; }
-    }
+    [Column("interpro_ac")]
+    public string InterproAc { get; set; }
+
+    [Column("id")]
+    [Key]
+    public string Id { get; set; }
 }

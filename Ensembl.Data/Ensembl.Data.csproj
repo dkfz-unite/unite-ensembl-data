@@ -1,34 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="MySql.EntityFrameworkCore" />
-    <None Remove="Entities\" />
-    <None Remove="Services\" />
-    <None Remove="Services\Configuration\" />
-    <None Remove="Services\Configuration\Options\" />
-    <None Remove="Microsoft.EntityFrameworkCore.Tools" />
-    <None Remove="MySql.Data.EntityFrameworkCore" />
-    <None Remove="Microsoft.EntityFrameworkCore.Design" />
-    <None Remove="Pomelo.EntityFrameworkCore.MySql" />
-    <None Remove="Services\Mappers\" />
-    <None Remove="Services\Mappers\Extensions\" />
-    <None Remove="Models\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Entities\" />
-    <Folder Include="Services\" />
-    <Folder Include="Services\Configuration\" />
-    <Folder Include="Services\Configuration\Options\" />
-    <Folder Include="Services\Mappers\" />
-    <Folder Include="Services\Mappers\Extensions\" />
-    <Folder Include="Models\" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="MySql.EntityFrameworkCore" Version="5.0.16" />
+    <PackageReference Include="MySql.EntityFrameworkCore" Version="5.0.17.2" />
   </ItemGroup>
 </Project>

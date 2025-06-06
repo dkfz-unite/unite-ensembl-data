@@ -1,16 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("coord_system")]
+public partial class CoordSystem
 {
-    public partial class CoordSystem
-    {
-        public int CoordSystemId { get; set; }
-        public int SpeciesId { get; set; }
-        public string Name { get; set; }
-        public string Version { get; set; }
-        public int Rank { get; set; }
-    }
+    [Column("coord_system_id")]
+    [Key]
+    public int CoordSystemId { get; set; }
+
+    [Column("species_id")]
+    public int SpeciesId { get; set; }
+
+    [Column("name")]
+    public string Name { get; set; }
+
+    [Column("version")]
+    public string Version { get; set; }
+
+    [Column("rank")]
+    public int Rank { get; set; }
 }

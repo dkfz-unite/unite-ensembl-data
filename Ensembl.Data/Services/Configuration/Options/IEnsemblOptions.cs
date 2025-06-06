@@ -4,4 +4,3 @@ public interface IEnsemblOptions
 {
     string Release { get; }
 }
-

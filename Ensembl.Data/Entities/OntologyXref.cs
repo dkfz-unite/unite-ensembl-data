@@ -1,14 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("ontology_xref")]
+public partial class OntologyXref
 {
-    public partial class OntologyXref
-    {
-        public int ObjectXrefId { get; set; }
-        public int? SourceXrefId { get; set; }
-        public string LinkageType { get; set; }
-    }
+    [Column("object_xref_id")]
+    [Key]
+    public int ObjectXrefId { get; set; }
+
+    [Column("source_xref_id")]
+    public int? SourceXrefId { get; set; }
+
+    [Column("linked_type")]
+    public string LinkageType { get; set; }
 }

@@ -1,26 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("exon")]
+public partial class Exon
 {
-    public partial class Exon
-    {
-        public int ExonId { get; set; }
-        public int SeqRegionId { get; set; }
-        public int SeqRegionStart { get; set; }
-        public int SeqRegionEnd { get; set; }
-        public short SeqRegionStrand { get; set; }
-        public byte Phase { get; set; }
-        public byte EndPhase { get; set; }
-        public bool? IsCurrent { get; set; }
-        public bool IsConstitutive { get; set; }
-        public string StableId { get; set; }
-        public short? Version { get; set; }
-        public DateTime? CreatedDate { get; set; }
-        public DateTime? ModifiedDate { get; set; }
+    [Column("exon_id")]
+    [Key]
+    public int ExonId { get; set; }
 
-        public virtual SeqRegion SeqRegion { get; set; }
-    }
+    [Column("seq_region_id")]
+    public int SeqRegionId { get; set; }
+
+    [Column("seq_region_start")]
+    public int SeqRegionStart { get; set; }
+
+    [Column("seq_region_end")]
+    public int SeqRegionEnd { get; set; }
+
+    [Column("seq_region_strand")]
+    public short SeqRegionStrand { get; set; }
+
+    [Column("phase")]
+    public short Phase { get; set; }
+
+    [Column("end_phase")]
+    public short EndPhase { get; set; }
+
+    [Column("is_current")]
+    public bool IsCurrent { get; set; }
+
+    [Column("is_constitutive")]
+    public bool IsConstitutive { get; set; }
+
+    [Column("stable_id")]
+    public string StableId { get; set; }
+
+    [Column("version")]
+    public short? Version { get; set; }
+
+    [Column("created_date")]
+    public DateTime? CreatedDate { get; set; }
+
+    [Column("modified_date")]
+    public DateTime? ModifiedDate { get; set; }
+
+
+    [ForeignKey(nameof(SeqRegionId))]
+    public virtual SeqRegion SeqRegion { get; set; }
 }

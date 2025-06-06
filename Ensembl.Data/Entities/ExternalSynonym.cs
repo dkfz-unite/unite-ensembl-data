@@ -1,15 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Ensembl.Data.Attributes;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("external_synonym")]
+public partial class ExternalSynonym
 {
-    public partial class ExternalSynonym
-    {
-        public int XrefId { get; set; }
-        public string Synonym { get; set; }
+    [Column("xref_id")]
+    [CompositeKey("xref_id", Order = 1)]
+    public int XrefId { get; set; }
 
-        public virtual Xref Xref { get; set; }
-    }
+    [Column("synonym")]
+    [CompositeKey("synonym", Order = 2)]
+    public string Synonym { get; set; }
+
+    [ForeignKey(nameof(XrefId))]
+    public virtual Xref Xref { get; set; }
 }

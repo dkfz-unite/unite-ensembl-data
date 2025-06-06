@@ -1,18 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-#nullable disable
+namespace Ensembl.Data.Entities;
 
-namespace Ensembl.Data.Entities
+[Table("seq_region")]
+public partial class SeqRegion
 {
-    public partial class SeqRegion
-    {
-        public int SeqRegionId { get; set; }
-        public string Name { get; set; }
-        public int CoordSystemId { get; set; }
-        public int Length { get; set; }
+    [Column("seq_region_id")]
+    [Key]
+    public int SeqRegionId { get; set; }
 
-        public virtual CoordSystem CoordSystem { get; set; }
-        public virtual ICollection<SeqRegionSynonym> SeqRegionSynonyms { get; set; }
-    }
+    [Column("name")]
+    public string Name { get; set; }
+
+    [Column("coord_system_id")]
+    public int CoordSystemId { get; set; }
+
+    [Column("length")]
+    public int Length { get; set; }
+
+
+    [ForeignKey(nameof(CoordSystemId))]
+    public virtual CoordSystem CoordSystem { get; set; }
+
+    [InverseProperty(nameof(SeqRegionSynonym.SeqRegion))]
+    public virtual ICollection<SeqRegionSynonym> SeqRegionSynonyms { get; set; }
 }
