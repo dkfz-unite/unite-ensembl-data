@@ -16,7 +16,7 @@ public partial class ExternalDb
     [Column("db_release")]
     public string DbRelease { get; set; }
 
-    [Column("db_status")]
+    [Column("status")]
     public string Status { get; set; }
 
     [Column("priority")]
@@ -25,7 +25,7 @@ public partial class ExternalDb
     [Column("db_display_name")]
     public string DbDisplayName { get; set; }
 
-    [Column("db_type")]
+    [Column("type")]
     public string Type { get; set; }
 
     [Column("secondary_db_name")]

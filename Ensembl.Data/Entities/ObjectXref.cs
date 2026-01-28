@@ -24,4 +24,8 @@ public partial class ObjectXref
 
     [Column("analysis_id")]
     public short? AnalysisId { get; set; }
+
+
+    [ForeignKey(nameof(XrefId))]
+    public virtual Xref Xref { get; set; }
 }
