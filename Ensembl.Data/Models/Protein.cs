@@ -7,12 +7,16 @@ public record Protein
     public int Start { get; set; }
     public int End { get; set; }
     public int Length { get; set; }
+    public string Accession { get; set; }
+    public string Symbol { get; set; }
+    public string Description { get; set; }
+    public string Database { get; set; }
     public bool IsCanonical { get; set; }
 
     public ProteinFeature[] Features { get; set; }
 
 
-    public Protein(Entities.Translation entity)
+    public Protein(Entities.Translation entity, Entities.ObjectXref objectXref = null)
     {
         Id = entity.StableId;
 
@@ -27,5 +31,13 @@ public record Protein
         End = entity.EndExon.SeqRegionStrand == 1
             ? entity.EndExon != null ? entity.EndExon.SeqRegionStart + entity.SeqEnd - 1 : 0
             : entity.StartExon != null ? entity.StartExon.SeqRegionEnd - entity.SeqStart + 1 : 0;
+
+        Accession = objectXref?.Xref?.DbprimaryAcc;
+
+        Symbol = objectXref?.Xref?.DisplayLabel;
+        
+        Description = objectXref?.Xref?.Description;
+
+        Database = objectXref?.Xref?.ExternalDb?.DbName;
     }
 }

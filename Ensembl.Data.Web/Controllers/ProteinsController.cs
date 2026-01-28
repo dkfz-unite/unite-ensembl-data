@@ -1,4 +1,5 @@
 ﻿using Ensembl.Data.Services;
+using Ensembl.Data.Web.Controllers.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ensembl.Data.Web.Controllers;
@@ -40,7 +41,7 @@ public class ProteinsController : Controller
             return BadRequest("Protein ID is not set.");
         }
 
-        var model = searchService.Find(id, expand);
+        var model = searchService.Find(id.Trim(), expand);
 
         if (model != null)
         {
@@ -60,16 +61,112 @@ public class ProteinsController : Controller
             return BadRequest("Invalid GRCh version specified or database doesn't exist.");
         }
 
-        if (ids == null)
+        if (ids == null || ids.All(id => string.IsNullOrWhiteSpace(id)))
         {
             return BadRequest("Protein IDs are not set.");
         }
-        else if (ids.Any(id => string.IsNullOrWhiteSpace(id)))
+
+        var models = searchService.Find(ids.FilteredDistinct(), expand);
+
+        if (models != null)
         {
-            return BadRequest("Some of protein IDs are not set.");
+            return Json(models);
+        }
+        else
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet("acc/{accession}")]
+    public IActionResult FindByAccession(string accession, bool expand = false, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveSearchService(grch, out var searchService))
+        {
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
         }
 
-        var models = searchService.Find(ids.Distinct(), expand);
+        if (string.IsNullOrWhiteSpace(accession))
+        {
+            return BadRequest("Protein accession is not set.");
+        }
+
+        var model = searchService.FindByAccession(accession.Trim(), expand);
+
+        if (model != null)
+        {
+            return Json(model);
+        }
+        else
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpPost("acc")]
+    public IActionResult FindAllByAccession([FromBody] string[] accessions, bool expand = false, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveSearchService(grch, out var searchService))
+        {
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+        }
+
+        if (accessions == null || accessions.All(acc => string.IsNullOrWhiteSpace(acc)))
+        {
+            return BadRequest("Protein accessions are not set.");
+        }
+
+        var models = searchService.FindByAccession(accessions.FilteredDistinct(), expand);
+
+        if (models != null)
+        {
+            return Json(models);
+        }
+        else
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpGet("symbol/{symbol}")]
+    public IActionResult FindByName(string symbol, bool expand = false, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveSearchService(grch, out var searchService))
+        {
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+        }
+
+        if (string.IsNullOrWhiteSpace(symbol))
+        {
+            return BadRequest("Protein symbol is not set.");
+        }
+
+        var model = searchService.FindByName(symbol.Trim(), expand);
+
+        if (model != null)
+        {
+            return Json(model);
+        }
+        else
+        {
+            return NotFound();
+        }
+    }
+
+    [HttpPost("symbol")]
+    public IActionResult FindAllByName([FromBody] string[] symbols, bool expand = false, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveSearchService(grch, out var searchService))
+        {
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+        }
+
+        if (symbols == null || symbols.All(symbol => string.IsNullOrWhiteSpace(symbol)))
+        {
+            return BadRequest("Protein symbols are not set.");
+        }
+
+        var models = searchService.FindByName(symbols.FilteredDistinct(), expand);
 
         if (models != null)
         {

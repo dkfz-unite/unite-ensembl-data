@@ -1,4 +1,5 @@
 ﻿using Ensembl.Data.Services;
+using Ensembl.Data.Web.Controllers.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ensembl.Data.Web.Controllers;
@@ -60,16 +61,12 @@ public class TranscriptsController : Controller
             return BadRequest("Invalid GRCh version specified or database doesn't exist.");
         }
 
-        if (ids == null)
+        if (ids == null || ids.All(id => string.IsNullOrWhiteSpace(id)))
         {
             return BadRequest("Transcript IDs are not set.");
         }
-        else if (ids.Any(id => string.IsNullOrWhiteSpace(id)))
-        {
-            return BadRequest("Some of transcript IDs are not set.");
-        }
 
-        var models = searchService.Find(ids.Distinct(), length, expand);
+        var models = searchService.Find(ids.FilteredDistinct(), length, expand);
 
         if (models != null)
         {
@@ -82,7 +79,7 @@ public class TranscriptsController : Controller
     }
 
     [HttpGet("symbol/{symbol}")]
-    public IActionResult GetByName(string symbol, bool length = false, bool expand = false, byte grch = DefaultGRCh)
+    public IActionResult FindByName(string symbol, bool length = false, bool expand = false, byte grch = DefaultGRCh)
     {
         if (!TryResolveSearchService(grch, out var searchService))
         {
@@ -114,16 +111,12 @@ public class TranscriptsController : Controller
             return BadRequest("Invalid GRCh version specified or database doesn't exist.");
         }
 
-        if (symbols == null)
+        if (symbols == null || symbols.All(symbol => string.IsNullOrWhiteSpace(symbol)))
         {
             return BadRequest("Transcript symbols are not set.");
         }
-        else if (symbols.Any(symbol => string.IsNullOrWhiteSpace(symbol)))
-        {
-            return BadRequest("Some of transcript symbols are not set.");
-        }
 
-        var models = searchService.FindByName(symbols.Distinct(), length, expand);
+        var models = searchService.FindByName(symbols.FilteredDistinct(), length, expand);
 
         if (models != null)
         {

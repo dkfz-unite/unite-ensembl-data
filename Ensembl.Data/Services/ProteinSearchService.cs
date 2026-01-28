@@ -1,4 +1,6 @@
-﻿using Ensembl.Data.Models;
+﻿using System.Linq.Expressions;
+using Ensembl.Data.Entities.Constants;
+using Ensembl.Data.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ensembl.Data.Services;
@@ -28,9 +30,16 @@ public class ProteinSearchService
             throw new ArgumentException("Protein id is missing.", nameof(id));
         }
 
-        var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
+        var entity = GetQuery().FirstOrDefault(e => e.StableId == id);
 
-        return Convert(entity, expand);
+        if (entity == null)
+        {
+            return null;
+        }
+
+        var objectXref = GetObjectXrefQuery().FirstOrDefault(e => e.EnsemblId == entity.TranslationId);
+
+        return Convert(entity, objectXref, expand);
     }
 
     /// <summary>
@@ -47,16 +56,95 @@ public class ProteinSearchService
             throw new ArgumentException("Protein ids are missing", nameof(ids));
         }
 
-        var entities = GetQuery().Where(entity => ids.Contains(entity.StableId)).ToArray();
+        var entities = GetQuery().Where(e => ids.Contains(e.StableId)).ToArray();
 
-        return entities.Select(entity => Convert(entity, expand)).ToArray();
+        var entityIds = entities.Select(e => e.TranslationId).ToArray();
+
+        var objectXrefs = GetObjectXrefQuery()
+            .Where(e => entityIds.Contains(e.EnsemblId))
+            .ToDictionary(e => e.EnsemblId);
+
+        return entities.Select(entity => Convert(entity, objectXrefs[entity.TranslationId], expand)).ToArray();
     }
+
+
+    /// <summary>
+    /// Finds protein by symbol.
+    /// </summary>
+    /// <param name="symbol">Symbol</param>
+    /// <param name="expand">Include child entries</param>
+    /// <returns>Found protein.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public Protein FindByName(string symbol, bool expand = false)
+    {
+        if (string.IsNullOrEmpty(symbol))
+        {
+            throw new ArgumentException("Protein symbol is missing.", nameof(symbol));
+        }
+
+        return FindViaXref(e => e.Xref.DisplayLabel == symbol, expand);
+    }
+
+    /// <summary>
+    /// Finds proteins by their symbols.
+    /// </summary>
+    /// <param name="symbols">Symbols list</param>
+    /// <param name="expand">Include child entries</param>
+    /// <returns>Array of found proteins.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public Protein[] FindByName(IEnumerable<string> symbols, bool expand = false)
+    {
+        if (symbols == null)
+        {
+            throw new ArgumentException("Protein symbols are missing.", nameof(symbols));
+        }
+
+        return FindAllViaXref(e => symbols.Contains(e.Xref.DisplayLabel), expand);
+    }
+
+
+    /// <summary>
+    /// Finds protein by accession.
+    /// </summary>
+    /// <param name="accession">Accession</param>
+    /// <param name="expand">Include child entries</param>
+    /// <returns>Found protein.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public Protein FindByAccession(string accession, bool expand = false)
+    {
+        if (string.IsNullOrEmpty(accession))
+        {
+            throw new ArgumentException("Protein accession is missing.", nameof(accession));
+        }
+
+        return FindViaXref(e => e.Xref.DbprimaryAcc == accession, expand);
+    }
+
+    /// <summary>
+    /// Finds proteins by their accessions.
+    /// </summary>
+    /// <param name="accessions">Accessions list</param>
+    /// <param name="expand">Include child entries</param>
+    /// <returns>Array of found proteins.</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public Protein[] FindByAccession(IEnumerable<string> accessions, bool expand = false)
+    {
+        if (accessions == null)
+        {
+            throw new ArgumentException("Protein accessions are missing.", nameof(accessions));
+        }
+
+        return FindAllViaXref(e => accessions.Contains(e.Xref.DbprimaryAcc), expand);
+    }
+
 
     internal Protein Get(int id, bool expand = false)
     {
         var entity = GetQuery().FirstOrDefault(e => e.TranslationId == id);
 
-        return Convert(entity, expand);
+        var objectXref = GetObjectXrefQuery().FirstOrDefault(e => e.EnsemblId == id);
+
+        return Convert(entity, objectXref, expand);
     }
 
 
@@ -68,11 +156,46 @@ public class ProteinSearchService
             .Include(e => e.EndExon);
     }
 
-    private Protein Convert(Entities.Translation entity, bool expand = false)
+    private IQueryable<Entities.ObjectXref> GetObjectXrefQuery()
+    {
+        return _dbContext.ObjectXrefs
+            .Include(e => e.Xref.ExternalDb)
+            .OrderByDescending(e => e.Xref.ExternalDb.Priority)
+            .Where(e => e.EnsemblObjectType == ObjectType.Protein);
+    }
+
+    private Protein FindViaXref(Expression<Func<Entities.ObjectXref, bool>> predicate, bool expand = false)
+    {
+        var objectXref = GetObjectXrefQuery().FirstOrDefault(predicate);
+
+        if (objectXref == null)
+        {
+            return null;
+        }
+
+        var entity = GetQuery().FirstOrDefault(e => e.TranslationId == objectXref.EnsemblId);
+
+        return Convert(entity, objectXref, expand);
+    }
+
+    private Protein[] FindAllViaXref(Expression<Func<Entities.ObjectXref, bool>> predicate, bool expand = false)
+    {
+        var objectXrefs = GetObjectXrefQuery()
+            .Where(predicate)
+            .ToDictionary(e => e.EnsemblId);
+
+        var entities = GetQuery()
+            .Where(e => objectXrefs.Keys.Contains(e.TranslationId))
+            .ToArray();
+
+        return entities.Select(entity => Convert(entity, objectXrefs[entity.TranslationId], expand)).ToArray();
+    }
+
+    private Protein Convert(Entities.Translation entity, Entities.ObjectXref objectXref, bool expand = false)
     {
         if (entity != null)
         {
-            var protein = new Protein(entity);
+            var protein = new Protein(entity, objectXref);
 
             protein.Length = GetProteinLength(entity, protein.Start, protein.End);
 
