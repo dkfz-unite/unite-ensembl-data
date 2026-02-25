@@ -188,6 +188,10 @@ public class ProteinSearchService
     {
         var objectXrefs = GetObjectXrefQuery()
             .Where(predicate)
+            .ToArray()
+            .GroupBy(e => e.XrefId)
+            .Select(g => g.OrderByDescending(e => e.EnsemblId).First())
+            .DistinctBy(e => e.EnsemblId)
             .ToDictionary(e => e.EnsemblId);
 
         var entities = GetQuery()
