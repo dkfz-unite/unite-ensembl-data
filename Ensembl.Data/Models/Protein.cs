@@ -4,6 +4,7 @@ public record Protein
 {
     public string Id { get; set; }
     public string TranscriptId { get; set; }
+    public string Chromosome { get; set; }
     public int Start { get; set; }
     public int End { get; set; }
     public int Length { get; set; }
@@ -23,6 +24,8 @@ public record Protein
         TranscriptId = entity.Transcript?.StableId;
 
         IsCanonical = entity.Transcript?.CanonicalTranslationId == entity.TranslationId;
+
+        Chromosome = entity?.Transcript?.SeqRegion?.Name;
 
         Start = entity.StartExon.SeqRegionStrand == 1
             ? entity.StartExon != null ? entity.StartExon.SeqRegionStart + entity.SeqStart - 1 : 0

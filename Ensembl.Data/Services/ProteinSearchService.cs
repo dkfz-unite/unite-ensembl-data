@@ -1,6 +1,7 @@
 ﻿using System.Linq.Expressions;
 using Ensembl.Data.Entities.Constants;
 using Ensembl.Data.Models;
+using Ensembl.Data.Services.Configuration.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ensembl.Data.Services;
@@ -150,10 +151,15 @@ public class ProteinSearchService
 
     private IQueryable<Entities.Translation> GetQuery()
     {
+        var coordSystemIds = _dbContext.GetCoordSystemIds();
+        var chromosomeNames = GenomeSettings.ChromosomeNames;
+        
         return _dbContext.Translations
-            .Include(e => e.Transcript)
+            .Include(e => e.Transcript.SeqRegion)
             .Include(e => e.StartExon)
-            .Include(e => e.EndExon);
+            .Include(e => e.EndExon)
+            .Where(e => coordSystemIds.Contains(e.Transcript.SeqRegion.CoordSystemId))
+            .Where(e => chromosomeNames.Contains(e.Transcript.SeqRegion.Name));
     }
 
     private IQueryable<Entities.ObjectXref> GetObjectXrefQuery()
@@ -182,6 +188,10 @@ public class ProteinSearchService
     {
         var objectXrefs = GetObjectXrefQuery()
             .Where(predicate)
+            .ToArray()
+            .GroupBy(e => e.XrefId)
+            .Select(g => g.OrderByDescending(e => e.EnsemblId).First())
+            .DistinctBy(e => e.EnsemblId)
             .ToDictionary(e => e.EnsemblId);
 
         var entities = GetQuery()
