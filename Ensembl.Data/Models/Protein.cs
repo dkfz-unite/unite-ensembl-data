@@ -7,6 +7,7 @@ public record Protein
     public string Chromosome { get; set; }
     public int Start { get; set; }
     public int End { get; set; }
+    public bool Strand { get; set; }
     public int Length { get; set; }
     public string Accession { get; set; }
     public string Symbol { get; set; }
@@ -25,7 +26,7 @@ public record Protein
 
         IsCanonical = entity.Transcript?.CanonicalTranslationId == entity.TranslationId;
 
-        Chromosome = entity?.Transcript?.SeqRegion?.Name;
+        Chromosome = entity.Transcript?.SeqRegion?.Name;
 
         Start = entity.StartExon.SeqRegionStrand == 1
             ? entity.StartExon != null ? entity.StartExon.SeqRegionStart + entity.SeqStart - 1 : 0
@@ -34,6 +35,8 @@ public record Protein
         End = entity.EndExon.SeqRegionStrand == 1
             ? entity.EndExon != null ? entity.EndExon.SeqRegionStart + entity.SeqEnd - 1 : 0
             : entity.StartExon != null ? entity.StartExon.SeqRegionEnd - entity.SeqStart + 1 : 0;
+
+        Strand = entity.Transcript?.SeqRegionStrand == 1;
 
         Accession = objectXref?.Xref?.DbprimaryAcc;
 
