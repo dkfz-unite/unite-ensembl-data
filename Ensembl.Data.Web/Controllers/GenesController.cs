@@ -30,6 +30,8 @@ public class GenesController : Controller
     [HttpGet("id/{id}")]
     public IActionResult Find(string id, bool length = false, bool expand = false, byte grch = DefaultGRCh)
     {
+        Console.WriteLine($"Received request for gene ID: {id}, length: {length}, expand: {expand}, GRCh: {grch}");
+
         if (!TryResolveSearchService(grch, out var searchService))
         {
             return BadRequest("Invalid GRCh version specified or database doesn't exist.");
