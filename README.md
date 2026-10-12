@@ -1,5 +1,8 @@
 # Ensembl Data Service
 
+Shared architecture, development workflows, and agent instructions:
+[UNITE project documentation](https://github.com/dkfz-unite/.github/blob/main/README.md).
+
 ## General
 Ensembl data service is a WEB wrapper over Ensembl homo sapience database and provides the access to it's data.
 - [Ensembl Data API](./Docs/api.md) - REST API for accessing required information about Ensembl genes, transcripts and proteins.
