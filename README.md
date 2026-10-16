@@ -1,5 +1,8 @@
 # Ensembl Data Service
 
+Shared architecture, development workflows, and agent instructions:
+[UNITE project documentation](https://github.com/dkfz-unite/.github/blob/main/README.md).
+
 ## General
 Ensembl data service is a WEB wrapper over Ensembl homo sapience database and provides the access to it's data.
 - [Ensembl Data API](./Docs/api.md) - REST API for accessing required information about Ensembl genes, transcripts and proteins.
@@ -29,11 +32,13 @@ To configure the application, change environment variables in either docker or [
 Variable|Description|Default(Local)|Default(Docker)
 --------|-----------|--------------|---------------
 ASPNETCORE_ENVIRONMENT|ASP.NET environment|Debug|Release
-ENSEMBL_RELEASE|Database release version|109_37|109_37
 ENSEMBL_SQL_HOST|SQL server host|localhost|mysql.unite.net
 ENSEMBL_SQL_PORT|SQL server port|3306|3306
 ENSEMBL_SQL_USER|SQL server user||
 ENSEMBL_SQL_PASSWORD|SQL server password||
+
+The service uses Ensembl release 116 (the last release published on ftp.ensembl.org): databases `homo_sapiens_core_116_37` (GRCh37) and `homo_sapiens_core_116_38` (GRCh38).
+The genome build is selected per request with the `grch` parameter (`37` by default), only the database of the installation genome build has to be installed.
 
 
 ## Installation
@@ -65,7 +70,6 @@ docker run \
 --net-alias data.ensembl.unite.net \
 -p 127.0.0.1:5200:80 \
 -e ASPNETCORE_ENVIRONMENT=Release \
--e ENSEMBL_RELEASE=109_37 \
 -e ENSEMBL_SQL_HOST=mysql.unite.net \
 -e ENSEMBL_SQL_PORT=3306 \
 -e ENSEMBL_SQL_USER=[sql_user] \
