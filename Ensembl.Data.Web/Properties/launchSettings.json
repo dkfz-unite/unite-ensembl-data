@@ -14,7 +14,6 @@
       "launchUrl": "api",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ENSEMBL_RELEASE": "113",
         "ENSEMBL_SQL_HOST": "localhost",
         "ENSEMBL_SQL_PORT": "3306",
         "ENSEMBL_SQL_USER": "root",
@@ -28,7 +27,6 @@
       "applicationUrl": "http://localhost:5200",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ENSEMBL_RELEASE": "113",
         "ENSEMBL_SQL_HOST": "localhost",
         "ENSEMBL_SQL_PORT": "3306",
         "ENSEMBL_SQL_USER": "root",
