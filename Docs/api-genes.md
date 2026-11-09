@@ -1,45 +1,43 @@
 # Ensembl Genes API
-Allows to find genes by their stable ids or well known names with or without additional details.
 
-## GET: [api/genes/id/[id]?length=false&expand=true](http://localhost:5200/api/genes/id/ENSG00000146648?length=false&expand=true)
-Find gene by stable id.
+Gene lookups support Ensembl stable IDs and gene symbols. Lookup values are
+case-insensitive.
 
-### Parameters
-**`id`*** - Ensembl gene stable identifier.
-- Type: _String_
-- Example: `ENSG00000146648`
+## Query parameters
 
-**`length`** - Include gene exonic length.
-- Type: _Boolean_
-- Example: `false`
+| Parameter | Applies to | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `grch` | All endpoints | Integer | `37` | Reference genome version. Supported values are `37` and `38`. |
+| `length` | Metadata endpoints | Boolean | `false` | Calculate the exonic length of the canonical transcript. |
+| `expand` | Metadata endpoints | Boolean | `false` | Include the canonical transcript, its protein and protein features. |
 
-**`expand`** - Include gene details such as canonical transcript it's protein and features.
-- Type: _Boolean_
-- Example: `true`
+The database for the selected `grch` version must be installed and accessible.
 
-### Resources
-- Gene data in **json** format if was found.
+## Endpoints
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - gene with given id was not found
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/genes/id/{id}` | Find one gene by Ensembl stable ID. |
+| `GET` | `/api/genes/id/{id}/sequence` | Get the gene sequence by Ensembl stable ID. |
+| `POST` | `/api/genes/id` | Find genes by Ensembl stable IDs. |
+| `GET` | `/api/genes/symbol/{symbol}` | Find one gene by symbol. |
+| `GET` | `/api/genes/symbol/{symbol}/sequence` | Get the gene sequence by symbol. |
+| `POST` | `/api/genes/symbol` | Find genes by symbols. |
 
+GET example:
 
-## POST [api/genes/id?length=false&expand=true](http://localhost:5200/api/genes/id?length=false&expand=true)
-Find genes by stable ids.
+```http
+GET /api/genes/id/ENSG00000146648?length=true&expand=true&grch=37
+```
 
-### Parameters
-**`length`** - Include gene exonic length.
-- Type: _Boolean_
-- Example: `false`
+POST requests contain a JSON array of IDs or symbols. Blank values are ignored
+and duplicate values are removed.
 
-**`expand`** - Include gene details such as canonical transcript it's protein and features.
-- Type: _Boolean_
-- Example: `true`
+```http
+POST /api/genes/id?length=false&expand=false&grch=37
+Content-Type: application/json
+```
 
-### Body
-Body is an array of gene stable ids in **json** format.
 ```json
 [
   "ENSG00000146648",
@@ -47,71 +45,25 @@ Body is an array of gene stable ids in **json** format.
 ]
 ```
 
-### Resources
-- Array of genes data in **json** format if were found.
+Single GET requests return a gene JSON object or `404` when no gene matches.
+POST requests return a JSON array, which can be empty when nothing matches.
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - genes with given ids were not found
+## Sequence responses
 
+Example:
 
-## GET: [api/genes/symbol/[symbol]?length=false&expand=true](http://localhost:5200/api/genes/symbol/EGFR?length=false&expand=true)
-Find gene by it's well known name.
-
-### Parameters
-**`symbol`*** - Gene symbol.
-- Type: _String_
-- Example: `EGFR`
-
-**`length`** - Include gene exonic length.
-- Type: _Boolean_
-- Example: `false`
-
-**`expand`** - Include gene details such as canonical transcript it's protein and features.
-- Type: _Boolean_
-- Example: `true`
-
-### Resources
-- Gene data in **json** format if was found.
-
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - gene with given symbol was not found
-
-
-## POST [api/genes/symbol?length=false&expand=true](http://localhost:5200/api/genes/symbol?length=false&expand=true)
-Find genes by their well known names.
-
-### Parameters
-**`length`** - Include gene exonic length.
-- Type: _Boolean_
-- Example: `false`
-
-**`expand`** - Include gene details such as canonical transcript it's protein and features.
-- Type: _Boolean_
-- Example: `true`
-
-### Body
-Body is an array of gene symbols in **json** format.
-```json
-[
-  "EGFR",
-  "TTN"
-]
+```http
+GET /api/genes/symbol/EGFR/sequence?grch=37
 ```
 
-### Resources
-- Array of genes data in **json** format if were found.
+The response is a JSON string containing the complete genomic gene span,
+including introns, in feature orientation from 5′ to 3′.
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - genes with given symbols were not found
+## Responses
 
-
-##
-- **`*`** - Required parameter.
-- `length` - Gene exonic length is an exonic length of it's canonical transcript. The value has to be calculated so it may slow down the response for a big amount of data or large genes.
-- `expand` - Expand functionality is different from original Ensembl API. It includes only information about gene canonical transcript, it's protein and features. It doesn't include information about other transcripts, exons, introns, etc.
+| Status | Meaning |
+| --- | --- |
+| `200` | The request succeeded. |
+| `400` | The request is invalid, the body is missing, or `grch` is unsupported or unavailable. |
+| `404` | A single requested gene was not found. |
+| `500` | Required annotation or reference data is missing or inconsistent. |

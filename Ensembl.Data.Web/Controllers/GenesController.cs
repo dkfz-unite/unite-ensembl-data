@@ -12,17 +12,21 @@ public class GenesController : Controller
 
     private readonly GeneSearchService _searchService37;
     private readonly GeneSearchService _searchService38;
+    private readonly SequenceService _sequenceService37;
+    private readonly SequenceService _sequenceService38;
 
     public GenesController(EnsemblDbContext37 dbContext37, EnsemblDbContext38 dbContext38)
     {
         if (dbContext37.Database.CanConnect())
         {
             _searchService37 = new GeneSearchService(dbContext37);
+            _sequenceService37 = new SequenceService(dbContext37);
         }
         
         if (dbContext38.Database.CanConnect())
         {
             _searchService38 = new GeneSearchService(dbContext38);
+            _sequenceService38 = new SequenceService(dbContext38);
         }
     }
 
@@ -50,6 +54,23 @@ public class GenesController : Controller
         {
             return NotFound();
         }
+    }
+
+    [HttpGet("id/{id}/sequence")]
+    public IActionResult FindSequence(string id, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+
+        if (string.IsNullOrWhiteSpace(id))
+            return BadRequest("Gene ID is not set.");
+
+        var gene = searchService.Find(id.Trim().ToLowerInvariant());
+        if (gene == null)
+            return NotFound();
+
+        var sequence = sequenceService.GetForGene(gene);
+        return Json(sequence);
     }
 
     [HttpPost("id")]
@@ -97,6 +118,23 @@ public class GenesController : Controller
         }
     }
 
+    [HttpGet("symbol/{symbol}/sequence")]
+    public IActionResult FindSequenceByName(string symbol, byte grch = DefaultGRCh)
+    {
+        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+
+        if (string.IsNullOrWhiteSpace(symbol))
+            return BadRequest("Gene symbol is not set.");
+
+        var gene = searchService.FindByName(symbol.Trim().ToLowerInvariant());
+        if (gene == null)
+            return NotFound();
+
+        var sequence = sequenceService.GetForGene(gene);
+        return Json(sequence);
+    }
+
     [HttpPost("symbol")]
     public IActionResult FindAllByName([FromBody] string[] symbols, bool length = false, bool expand = false, byte grch = DefaultGRCh)
     {
@@ -133,5 +171,19 @@ public class GenesController : Controller
         };
 
         return searchService != null;
+    }
+
+    private bool TryResolveServices(int grch, out GeneSearchService searchService, out SequenceService sequenceService)
+    {
+        TryResolveSearchService(grch, out searchService);
+
+        sequenceService = grch switch
+        {
+            37 => _sequenceService37,
+            38 => _sequenceService38,
+            _ => null
+        };
+
+        return searchService != null && sequenceService != null;
     }
 }

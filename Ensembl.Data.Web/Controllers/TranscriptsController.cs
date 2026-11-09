@@ -1,4 +1,5 @@
 ﻿using Ensembl.Data.Services;
+using Ensembl.Data.Services.Configuration.Constants;
 using Ensembl.Data.Web.Controllers.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +13,8 @@ public class TranscriptsController : Controller
 
     private readonly TranscriptSearchService _searchService37;
     private readonly TranscriptSearchService _searchService38;
+    private readonly SequenceService _sequenceService37;
+    private readonly SequenceService _sequenceService38;
 
 
     public TranscriptsController(EnsemblDbContext37 dbContext37, EnsemblDbContext38 dbContext38)
@@ -19,11 +22,13 @@ public class TranscriptsController : Controller
         if (dbContext37.Database.CanConnect())
         {
             _searchService37 = new TranscriptSearchService(dbContext37);
+            _sequenceService37 = new SequenceService(dbContext37);
         }
         
         if (dbContext38.Database.CanConnect())
         {
             _searchService38 = new TranscriptSearchService(dbContext38);
+            _sequenceService38 = new SequenceService(dbContext38);
         }
     }
 
@@ -51,6 +56,27 @@ public class TranscriptsController : Controller
         {
             return NotFound();
         }
+    }
+
+    [HttpGet("id/{id}/sequence")]
+    public IActionResult FindSequence(string id, byte grch = DefaultGRCh, string type = SequenceType.Genomic)
+    {
+        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+
+        if (string.IsNullOrWhiteSpace(id))
+            return BadRequest("Transcript ID is not set.");
+
+        type = type?.Trim().ToLowerInvariant();
+        if (type is not (SequenceType.Genomic or SequenceType.Cdna or SequenceType.Cds))
+            return BadRequest("Transcript sequence type must be genomic, cdna or cds.");
+
+        var transcript = searchService.Find(id.Trim().ToLowerInvariant());
+        if (transcript == null)
+            return NotFound();
+
+        var sequence = sequenceService.GetForTranscript(transcript, type);
+        return Json(sequence);
     }
 
     [HttpPost("id")]
@@ -88,7 +114,7 @@ public class TranscriptsController : Controller
 
         if (string.IsNullOrWhiteSpace(symbol))
         {
-            return BadRequest("Transcript Symbol is not set.");
+            return BadRequest("Transcript symbol is not set.");
         }
 
         var model = searchService.FindByName(symbol, length, expand);
@@ -101,6 +127,27 @@ public class TranscriptsController : Controller
         {
             return NotFound();
         }
+    }
+
+    [HttpGet("symbol/{symbol}/sequence")]
+    public IActionResult FindSequenceByName(string symbol, byte grch = DefaultGRCh, string type = SequenceType.Genomic)
+    {
+        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
+            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
+
+        if (string.IsNullOrWhiteSpace(symbol))
+            return BadRequest("Transcript symbol is not set.");
+
+        type = type?.Trim().ToLowerInvariant();
+        if (type is not (SequenceType.Genomic or SequenceType.Cdna or SequenceType.Cds))
+            return BadRequest("Transcript sequence type must be genomic, cdna or cds.");
+
+        var transcript = searchService.FindByName(symbol.Trim().ToLowerInvariant());
+        if (transcript == null)
+            return NotFound();
+
+        var sequence = sequenceService.GetForTranscript(transcript, type);
+        return Json(sequence);
     }
 
     [HttpPost("symbol")]
@@ -139,5 +186,18 @@ public class TranscriptsController : Controller
         };
 
         return searchService != null;
+    }
+
+    private bool TryResolveServices(int grch, out TranscriptSearchService searchService, out SequenceService sequenceService)
+    {
+        TryResolveSearchService(grch, out searchService);
+        sequenceService = grch switch
+        {
+            37 => _sequenceService37,
+            38 => _sequenceService38,
+            _ => null
+        };
+
+        return searchService != null && sequenceService != null;
     }
 }

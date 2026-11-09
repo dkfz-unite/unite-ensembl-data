@@ -1,14 +1,23 @@
 # Ensembl Data API
-Allows to find information about Ensembl genes, transcripts and proteins with or without additional details.
 
-## GET: [api](http://localhost:5200/api)
-Health check.
+The service provides gene, transcript and protein metadata and sequences from
+the installed Ensembl GRCh37 and GRCh38 core databases.
 
-### Responses
-`"2022-03-17T09:45:10.9359202Z"` - Current UTC date and time in JSON format, if service is up and running
+## Health check
 
+`GET /api`
 
-## Features API
+Returns the current server date and time as a JSON value when the service is
+running.
+
+Example response:
+
+```json
+"2026-11-09T14:25:30.123456+01:00"
+```
+
+## Feature APIs
+
 - [Genes](./api-genes.md)
 - [Transcripts](./api-transcripts.md)
 - [Proteins](./api-proteins.md)

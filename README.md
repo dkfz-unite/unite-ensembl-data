@@ -38,7 +38,16 @@ ENSEMBL_SQL_USER|SQL server user||
 ENSEMBL_SQL_PASSWORD|SQL server password||
 
 The service uses Ensembl release 116 (the last release published on ftp.ensembl.org): databases `homo_sapiens_core_116_37` (GRCh37) and `homo_sapiens_core_116_38` (GRCh38).
-The genome build is selected per request with the `grch` parameter (`37` by default), only the database of the installation genome build has to be installed.
+Gene, transcript and protein endpoints select the build with the `grch` query
+parameter (`37` by default). Ensembl Data setup prepares the same selected
+annotation and reference-sequence tables for both builds.
+
+The [genes](Docs/api-genes.md), [transcripts](Docs/api-transcripts.md) and
+[proteins](Docs/api-proteins.md) APIs retrieve individual feature sequences by
+Ensembl ID, symbol or protein accession. They use the annotation and sequence
+tables for the requested build.
+The setup scripts are maintained in
+[unite-env/applications/unite-ensembl-data](https://github.com/dkfz-unite/unite-env/tree/liftover/applications/unite-ensembl-data).
 
 
 ## Installation

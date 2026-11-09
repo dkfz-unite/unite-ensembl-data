@@ -1,117 +1,80 @@
 # Ensembl Transcripts API
-Allows to find transcripts by their stable ids or well known names with or without additional details.
 
-## GET: [api/transcripts/id/[id]?length=false&expand=true](http://localhost:5200/api/transcripts/id/ENST00000275493?length=false&expand=true)
-Find transcript by stable id.
+Transcript lookups support Ensembl stable IDs and transcript symbols. Lookup
+values are case-insensitive.
 
-### Parameters
-**`id`*** - Ensembl transcript stable identifier.
-- Type: _String_
-- Example: `ENST00000275493`
+## Query parameters
 
-**`length`** - Include transcript exonic length.
-- Type: _Boolean_
-- Example: `false`
+| Parameter | Applies to | Type | Default | Description |
+| --- | --- | --- | --- | --- |
+| `grch` | All endpoints | Integer | `37` | Reference genome version. Supported values are `37` and `38`. |
+| `length` | Metadata endpoints | Boolean | `false` | Calculate the total exonic length. |
+| `expand` | Metadata endpoints | Boolean | `false` | Include the transcript protein and its protein features. |
+| `type` | Sequence endpoints | String | `genomic` | Sequence type: `genomic`, `cdna` or `cds`. |
 
-**`expand`** - Include transcript details such as protein and it's features.
-- Type: _Boolean_
-- Example: `true`
+The database for the selected `grch` version must be installed and accessible.
 
-### Resources
-- Transcript data in **json** format if was found.
+## Endpoints
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - transcript with given id was not found
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/api/transcripts/id/{id}` | Find one transcript by Ensembl stable ID. |
+| `GET` | `/api/transcripts/id/{id}/sequence` | Get the transcript sequence by Ensembl stable ID. |
+| `POST` | `/api/transcripts/id` | Find transcripts by Ensembl stable IDs. |
+| `GET` | `/api/transcripts/symbol/{symbol}` | Find one transcript by symbol. |
+| `GET` | `/api/transcripts/symbol/{symbol}/sequence` | Get the transcript sequence by symbol. |
+| `POST` | `/api/transcripts/symbol` | Find transcripts by symbols. |
 
+GET example:
 
-## POST [api/transcripts/id?length=false&expand=true](http://localhost:5200/api/transcripts/id?length=false&expand=true)
-Find transcripts by stable ids.
+```http
+GET /api/transcripts/id/ENST00000275493?length=true&expand=true&grch=37
+```
 
-### Parameters
-**`length`** - Include transcript exonic length.
-- Type: _Boolean_
-- Example: `false`
+POST requests contain a JSON array of IDs or symbols. Blank values are ignored
+and duplicate values are removed.
 
-**`expand`** - Include transcripts details such protein and it's features.
-- Type: _Boolean_
-- Example: `true`
+```http
+POST /api/transcripts/symbol?length=false&expand=false&grch=37
+Content-Type: application/json
+```
 
-### Body
-Body is an array of transcript stable ids in **json** format.
 ```json
 [
-  "ENST00000275493",
-  "ENST00000589042"
+  "EGFR-001",
+  "TTN-001"
 ]
 ```
 
-### Resources
-- Array of transcripts data in **json** format if were found.
+Single GET requests return a transcript JSON object or `404` when no transcript
+matches. POST requests return a JSON array, which can be empty when nothing
+matches.
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - transcripts with given ids were not found
+## Sequence responses
 
+Examples:
 
-## GET: [api/transcripts/symbol/[symbol]?length=false&expand=true](http://localhost:5200/api/transcripts/symbol/EGFR-201?length=false&expand=true)
-Find transcript by well known name.
-
-### Parameters
-**`symbol`*** - Transcript well known name.
-- Type: _String_
-- Example: `EGFR`
-
-**`length`** - Include transcript exonic length.
-- Type: _Boolean_
-- Example: `false`
-
-**`expand`** - Include transcripts details such protein and it's features.
-- Type: _Boolean_
-- Example: `true`
-
-### Resources
-- Transcript data in **json** format if was found.
-
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - transcript with given symbol was not found
-
-
-## POST: [api/transcripts/symbol?length=false&expand=true](http://localhost:5200/api/transcripts/symbol?length=false&expand=true)
-Find transcripts by well known names.
-
-### Parameters
-**`length`** - Include transcript exonic length.
-- Type: _Boolean_
-- Example: `false`
-
-**`expand`** - Include transcripts details such protein and it's features.
-- Type: _Boolean_
-- Example: `true`
-
-### Body
-Body is an array of transcript well known names in **json** format.
-```json
-[
-  "EGFR-201",
-  "TTN-214"
-]
+```http
+GET /api/transcripts/id/ENST00000275493/sequence?type=genomic&grch=37
+GET /api/transcripts/id/ENST00000275493/sequence?type=cdna&grch=37
+GET /api/transcripts/id/ENST00000275493/sequence?type=cds&grch=37
 ```
 
-### Resources
-- Array of transcripts data in **json** format if were found.
+Sequence types:
 
-### Responses
-- `200` - request was processed successfully
-- `400` - request data didn't pass validation
-- `404` - transcripts with given symbols were not found
+- `genomic` returns the complete genomic transcript span in feature orientation
+  from 5′ to 3′.
+- `cdna` returns the spliced exon sequence, including untranslated regions.
+- `cds` returns the canonical translation coding sequence. A noncoding
+  transcript returns JSON `null`.
 
+DNA sequences are returned as JSON strings.
 
-##
-- **`*`** - Required parameter.
-- `length` - The value has to be calculated so it may slow down the response for a big amount of data or large transcripts.
-- `expand` - Expand functionality is different from original Ensembl API. It includes only information protein and it's features. It doesn't include information about exons, introns, etc.
+## Responses
+
+| Status | Meaning |
+| --- | --- |
+| `200` | The request succeeded. |
+| `400` | The request, body, `grch` value or sequence `type` is invalid or unavailable. |
+| `404` | A single requested transcript was not found. |
+| `500` | Required annotation or reference data is missing or inconsistent. |

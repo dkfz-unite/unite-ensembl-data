@@ -31,7 +31,7 @@ public class ProteinSearchService
             throw new ArgumentException("Protein id is missing.", nameof(id));
         }
 
-        var entity = GetQuery().FirstOrDefault(e => e.StableId == id);
+        var entity = GetById(id).FirstOrDefault();
 
         if (entity == null)
         {
@@ -83,7 +83,7 @@ public class ProteinSearchService
             throw new ArgumentException("Protein symbol is missing.", nameof(symbol));
         }
 
-        return FindViaXref(e => e.Xref.DisplayLabel == symbol, expand);
+        return FindViaXref(GetXrefsBySymbol(symbol).FirstOrDefault(), expand);
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public class ProteinSearchService
             throw new ArgumentException("Protein accession is missing.", nameof(accession));
         }
 
-        return FindViaXref(e => e.Xref.DbprimaryAcc == accession, expand);
+        return FindViaXref(GetXrefsByAccession(accession).FirstOrDefault(), expand);
     }
 
     /// <summary>
@@ -138,16 +138,35 @@ public class ProteinSearchService
         return FindAllViaXref(e => accessions.Contains(e.Xref.DbprimaryAcc), expand);
     }
 
-
     internal Protein Get(int id, bool expand = false)
     {
-        var entity = GetQuery().FirstOrDefault(e => e.TranslationId == id);
+        var entity = GetByTranslationId(id).FirstOrDefault();
 
         var objectXref = GetObjectXrefQuery().FirstOrDefault(e => e.EnsemblId == id);
 
         return Convert(entity, objectXref, expand);
     }
 
+
+    private IQueryable<Entities.Translation> GetById(string id)
+    {
+        return GetQuery().Where(entity => entity.StableId == id);
+    }
+
+    private IQueryable<Entities.Translation> GetByTranslationId(int id)
+    {
+        return GetQuery().Where(entity => entity.TranslationId == id);
+    }
+
+    private IQueryable<Entities.ObjectXref> GetXrefsBySymbol(string symbol)
+    {
+        return GetObjectXrefQuery().Where(entity => entity.Xref.DisplayLabel == symbol);
+    }
+
+    private IQueryable<Entities.ObjectXref> GetXrefsByAccession(string accession)
+    {
+        return GetObjectXrefQuery().Where(entity => entity.Xref.DbprimaryAcc == accession);
+    }
 
     private IQueryable<Entities.Translation> GetQuery()
     {
@@ -170,16 +189,14 @@ public class ProteinSearchService
             .Where(e => e.EnsemblObjectType == ObjectType.Protein);
     }
 
-    private Protein FindViaXref(Expression<Func<Entities.ObjectXref, bool>> predicate, bool expand = false)
+    private Protein FindViaXref(Entities.ObjectXref objectXref, bool expand = false)
     {
-        var objectXref = GetObjectXrefQuery().FirstOrDefault(predicate);
-
         if (objectXref == null)
         {
             return null;
         }
 
-        var entity = GetQuery().FirstOrDefault(e => e.TranslationId == objectXref.EnsemblId);
+        var entity = GetByTranslationId(objectXref.EnsemblId).FirstOrDefault();
 
         return Convert(entity, objectXref, expand);
     }
