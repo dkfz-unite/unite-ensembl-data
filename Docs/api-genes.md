@@ -3,38 +3,38 @@
 Gene lookups support Ensembl stable IDs and gene symbols. Lookup values are
 case-insensitive.
 
+Routes use `{genome}` equal to `grch37` or `grch38`. The same routes without the
+`/{genome}` segment are direct aliases for GRCh37.
+
 ## Query parameters
 
 | Parameter | Applies to | Type | Default | Description |
 | --- | --- | --- | --- | --- |
-| `grch` | All endpoints | Integer | `37` | Reference genome version. Supported values are `37` and `38`. |
 | `length` | Metadata endpoints | Boolean | `false` | Calculate the exonic length of the canonical transcript. |
 | `expand` | Metadata endpoints | Boolean | `false` | Include the canonical transcript, its protein and protein features. |
-
-The database for the selected `grch` version must be installed and accessible.
 
 ## Endpoints
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/genes/id/{id}` | Find one gene by Ensembl stable ID. |
-| `GET` | `/api/genes/id/{id}/sequence` | Get the gene sequence by Ensembl stable ID. |
-| `POST` | `/api/genes/id` | Find genes by Ensembl stable IDs. |
-| `GET` | `/api/genes/symbol/{symbol}` | Find one gene by symbol. |
-| `GET` | `/api/genes/symbol/{symbol}/sequence` | Get the gene sequence by symbol. |
-| `POST` | `/api/genes/symbol` | Find genes by symbols. |
+| `GET` | `/api/{genome}/genes/id/{id}` | Find one gene by Ensembl stable ID. |
+| `GET` | `/api/{genome}/genes/id/{id}/sequence` | Get the gene sequence by Ensembl stable ID. |
+| `POST` | `/api/{genome}/genes/id` | Find genes by Ensembl stable IDs. |
+| `GET` | `/api/{genome}/genes/symbol/{symbol}` | Find one gene by symbol. |
+| `GET` | `/api/{genome}/genes/symbol/{symbol}/sequence` | Get the gene sequence by symbol. |
+| `POST` | `/api/{genome}/genes/symbol` | Find genes by symbols. |
 
 GET example:
 
 ```http
-GET /api/genes/id/ENSG00000146648?length=true&expand=true&grch=37
+GET /api/grch37/genes/id/ENSG00000146648?length=true&expand=true
 ```
 
 POST requests contain a JSON array of IDs or symbols. Blank values are ignored
 and duplicate values are removed.
 
 ```http
-POST /api/genes/id?length=false&expand=false&grch=37
+POST /api/grch38/genes/id?length=false&expand=false
 Content-Type: application/json
 ```
 
@@ -53,7 +53,7 @@ POST requests return a JSON array, which can be empty when nothing matches.
 Example:
 
 ```http
-GET /api/genes/symbol/EGFR/sequence?grch=37
+GET /api/grch37/genes/symbol/EGFR/sequence
 ```
 
 The response is a JSON string containing the complete genomic gene span,
@@ -64,6 +64,6 @@ including introns, in feature orientation from 5′ to 3′.
 | Status | Meaning |
 | --- | --- |
 | `200` | The request succeeded. |
-| `400` | The request is invalid, the body is missing, or `grch` is unsupported or unavailable. |
+| `400` | The request or body is invalid. |
 | `404` | A single requested gene was not found. |
 | `500` | Required annotation or reference data is missing or inconsistent. |

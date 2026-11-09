@@ -1,50 +1,31 @@
-﻿using Ensembl.Data.Services;
+using Ensembl.Data.Services;
 using Ensembl.Data.Web.Controllers.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ensembl.Data.Web.Controllers;
 
-[Route("api/genes")]
-[ApiController]
-public class GenesController : Controller
+public abstract class GenesControllerBase : Controller
 {
-    private const byte DefaultGRCh = 37;
+    private readonly GeneSearchService _searchService;
+    private readonly SequenceService _sequenceService;
 
-    private readonly GeneSearchService _searchService37;
-    private readonly GeneSearchService _searchService38;
-    private readonly SequenceService _sequenceService37;
-    private readonly SequenceService _sequenceService38;
 
-    public GenesController(EnsemblDbContext37 dbContext37, EnsemblDbContext38 dbContext38)
+    protected GenesControllerBase(EnsemblDbContext dbContext)
     {
-        if (dbContext37.Database.CanConnect())
-        {
-            _searchService37 = new GeneSearchService(dbContext37);
-            _sequenceService37 = new SequenceService(dbContext37);
-        }
-        
-        if (dbContext38.Database.CanConnect())
-        {
-            _searchService38 = new GeneSearchService(dbContext38);
-            _sequenceService38 = new SequenceService(dbContext38);
-        }
+        _searchService = new GeneSearchService(dbContext);
+        _sequenceService = new SequenceService(dbContext);
     }
 
 
     [HttpGet("id/{id}")]
-    public IActionResult Find(string id, bool length = false, bool expand = false, byte grch = DefaultGRCh)
+    public IActionResult Find(string id, bool length = false, bool expand = false)
     {
-        if (!TryResolveSearchService(grch, out var searchService))
-        {
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-        }
-
         if (string.IsNullOrWhiteSpace(id))
         {
             return BadRequest("Gene ID is not set.");
         }
 
-        var model = searchService.Find(id, length, expand);
+        var model = _searchService.Find(id, length, expand);
 
         if (model != null)
         {
@@ -57,36 +38,28 @@ public class GenesController : Controller
     }
 
     [HttpGet("id/{id}/sequence")]
-    public IActionResult FindSequence(string id, byte grch = DefaultGRCh)
+    public IActionResult FindSequence(string id)
     {
-        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-
         if (string.IsNullOrWhiteSpace(id))
             return BadRequest("Gene ID is not set.");
 
-        var gene = searchService.Find(id.Trim().ToLowerInvariant());
+        var gene = _searchService.Find(id.Trim().ToLowerInvariant());
         if (gene == null)
             return NotFound();
 
-        var sequence = sequenceService.GetForGene(gene);
+        var sequence = _sequenceService.GetForGene(gene);
         return Json(sequence);
     }
 
     [HttpPost("id")]
-    public IActionResult FindAll([FromBody] string[] ids, bool length = false, bool expand = false, byte grch = DefaultGRCh)
+    public IActionResult FindAll([FromBody] string[] ids, bool length = false, bool expand = false)
     {
-        if (!TryResolveSearchService(grch, out var searchService))
-        {
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-        }
-        
         if (ids == null || ids.All(id => string.IsNullOrWhiteSpace(id)))
         {
             return BadRequest("Gene IDs are not set.");
         }
 
-        var models = searchService.Find(ids.FilteredDistinct(), length, expand);
+        var models = _searchService.Find(ids.FilteredDistinct(), length, expand);
 
         if (models != null)
         {
@@ -99,14 +72,9 @@ public class GenesController : Controller
     }
 
     [HttpGet("symbol/{symbol}")]
-    public IActionResult FindByName(string symbol, bool length = false, bool expand = false, byte grch = DefaultGRCh)
+    public IActionResult FindByName(string symbol, bool length = false, bool expand = false)
     {
-        if (!TryResolveSearchService(grch, out var searchService))
-        {
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-        }
-
-        var model = searchService.FindByName(symbol, length, expand);
+        var model = _searchService.FindByName(symbol, length, expand);
 
         if (model != null)
         {
@@ -119,36 +87,28 @@ public class GenesController : Controller
     }
 
     [HttpGet("symbol/{symbol}/sequence")]
-    public IActionResult FindSequenceByName(string symbol, byte grch = DefaultGRCh)
+    public IActionResult FindSequenceByName(string symbol)
     {
-        if (!TryResolveServices(grch, out var searchService, out var sequenceService))
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-
         if (string.IsNullOrWhiteSpace(symbol))
             return BadRequest("Gene symbol is not set.");
 
-        var gene = searchService.FindByName(symbol.Trim().ToLowerInvariant());
+        var gene = _searchService.FindByName(symbol.Trim().ToLowerInvariant());
         if (gene == null)
             return NotFound();
 
-        var sequence = sequenceService.GetForGene(gene);
+        var sequence = _sequenceService.GetForGene(gene);
         return Json(sequence);
     }
 
     [HttpPost("symbol")]
-    public IActionResult FindAllByName([FromBody] string[] symbols, bool length = false, bool expand = false, byte grch = DefaultGRCh)
+    public IActionResult FindAllByName([FromBody] string[] symbols, bool length = false, bool expand = false)
     {
-        if (!TryResolveSearchService(grch, out var searchService))
-        {
-            return BadRequest("Invalid GRCh version specified or database doesn't exist.");
-        }
-
         if (symbols == null || symbols.All(symbol => string.IsNullOrWhiteSpace(symbol)))
         {
             return BadRequest("Gene symbols are not set.");
         }
 
-        var models = searchService.FindByName(symbols.FilteredDistinct(), length, expand);
+        var models = _searchService.FindByName(symbols.FilteredDistinct(), length, expand);
 
         if (models != null)
         {
@@ -159,31 +119,23 @@ public class GenesController : Controller
             return NotFound();
         }
     }
+}
 
-
-    private bool TryResolveSearchService(int grch, out GeneSearchService searchService)
+[ApiController]
+[Route("api/genes")]
+[Route("api/grch37/genes")]
+public sealed class Genes37Controller : GenesControllerBase
+{
+    public Genes37Controller(EnsemblDbContext37 dbContext) : base(dbContext)
     {
-        searchService = grch switch
-        {
-            37 => _searchService37,
-            38 => _searchService38,
-            _ => null
-        };
-
-        return searchService != null;
     }
+}
 
-    private bool TryResolveServices(int grch, out GeneSearchService searchService, out SequenceService sequenceService)
+[ApiController]
+[Route("api/grch38/genes")]
+public sealed class Genes38Controller : GenesControllerBase
+{
+    public Genes38Controller(EnsemblDbContext38 dbContext) : base(dbContext)
     {
-        TryResolveSearchService(grch, out searchService);
-
-        sequenceService = grch switch
-        {
-            37 => _sequenceService37,
-            38 => _sequenceService38,
-            _ => null
-        };
-
-        return searchService != null && sequenceService != null;
     }
 }

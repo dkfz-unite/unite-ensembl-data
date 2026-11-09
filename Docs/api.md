@@ -3,6 +3,14 @@
 The service provides gene, transcript and protein metadata and sequences from
 the installed Ensembl GRCh37 and GRCh38 core databases.
 
+## Genome routes
+
+The reference genome is selected by the API route prefix:
+
+- `/api/grch37/...` uses the GRCh37 database.
+- `/api/grch38/...` uses the GRCh38 database.
+- `/api/...` without a genome prefix is a direct alias for GRCh37.
+
 ## Health check
 
 `GET /api`

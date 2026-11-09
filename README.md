@@ -38,9 +38,10 @@ ENSEMBL_SQL_USER|SQL server user||
 ENSEMBL_SQL_PASSWORD|SQL server password||
 
 The service uses Ensembl release 116 (the last release published on ftp.ensembl.org): databases `homo_sapiens_core_116_37` (GRCh37) and `homo_sapiens_core_116_38` (GRCh38).
-Gene, transcript and protein endpoints select the build with the `grch` query
-parameter (`37` by default). Ensembl Data setup prepares the same selected
-annotation and reference-sequence tables for both builds.
+Gene, transcript and protein endpoints select the build with the `/api/grch37`
+or `/api/grch38` route prefix. Routes without a build prefix remain direct
+aliases for GRCh37. Ensembl Data setup prepares the same selected annotation
+and reference-sequence tables for both builds.
 
 The [genes](Docs/api-genes.md), [transcripts](Docs/api-transcripts.md) and
 [proteins](Docs/api-proteins.md) APIs retrieve individual feature sequences by

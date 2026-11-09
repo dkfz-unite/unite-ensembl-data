@@ -3,39 +3,39 @@
 Transcript lookups support Ensembl stable IDs and transcript symbols. Lookup
 values are case-insensitive.
 
+Routes use `{genome}` equal to `grch37` or `grch38`. The same routes without the
+`/{genome}` segment are direct aliases for GRCh37.
+
 ## Query parameters
 
 | Parameter | Applies to | Type | Default | Description |
 | --- | --- | --- | --- | --- |
-| `grch` | All endpoints | Integer | `37` | Reference genome version. Supported values are `37` and `38`. |
 | `length` | Metadata endpoints | Boolean | `false` | Calculate the total exonic length. |
 | `expand` | Metadata endpoints | Boolean | `false` | Include the transcript protein and its protein features. |
 | `type` | Sequence endpoints | String | `genomic` | Sequence type: `genomic`, `cdna` or `cds`. |
-
-The database for the selected `grch` version must be installed and accessible.
 
 ## Endpoints
 
 | Method | Route | Description |
 | --- | --- | --- |
-| `GET` | `/api/transcripts/id/{id}` | Find one transcript by Ensembl stable ID. |
-| `GET` | `/api/transcripts/id/{id}/sequence` | Get the transcript sequence by Ensembl stable ID. |
-| `POST` | `/api/transcripts/id` | Find transcripts by Ensembl stable IDs. |
-| `GET` | `/api/transcripts/symbol/{symbol}` | Find one transcript by symbol. |
-| `GET` | `/api/transcripts/symbol/{symbol}/sequence` | Get the transcript sequence by symbol. |
-| `POST` | `/api/transcripts/symbol` | Find transcripts by symbols. |
+| `GET` | `/api/{genome}/transcripts/id/{id}` | Find one transcript by Ensembl stable ID. |
+| `GET` | `/api/{genome}/transcripts/id/{id}/sequence` | Get the transcript sequence by Ensembl stable ID. |
+| `POST` | `/api/{genome}/transcripts/id` | Find transcripts by Ensembl stable IDs. |
+| `GET` | `/api/{genome}/transcripts/symbol/{symbol}` | Find one transcript by symbol. |
+| `GET` | `/api/{genome}/transcripts/symbol/{symbol}/sequence` | Get the transcript sequence by symbol. |
+| `POST` | `/api/{genome}/transcripts/symbol` | Find transcripts by symbols. |
 
 GET example:
 
 ```http
-GET /api/transcripts/id/ENST00000275493?length=true&expand=true&grch=37
+GET /api/grch37/transcripts/id/ENST00000275493?length=true&expand=true
 ```
 
 POST requests contain a JSON array of IDs or symbols. Blank values are ignored
 and duplicate values are removed.
 
 ```http
-POST /api/transcripts/symbol?length=false&expand=false&grch=37
+POST /api/grch38/transcripts/symbol?length=false&expand=false
 Content-Type: application/json
 ```
 
@@ -55,9 +55,9 @@ matches.
 Examples:
 
 ```http
-GET /api/transcripts/id/ENST00000275493/sequence?type=genomic&grch=37
-GET /api/transcripts/id/ENST00000275493/sequence?type=cdna&grch=37
-GET /api/transcripts/id/ENST00000275493/sequence?type=cds&grch=37
+GET /api/grch37/transcripts/id/ENST00000275493/sequence?type=genomic
+GET /api/grch37/transcripts/id/ENST00000275493/sequence?type=cdna
+GET /api/grch37/transcripts/id/ENST00000275493/sequence?type=cds
 ```
 
 Sequence types:
@@ -75,6 +75,6 @@ DNA sequences are returned as JSON strings.
 | Status | Meaning |
 | --- | --- |
 | `200` | The request succeeded. |
-| `400` | The request, body, `grch` value or sequence `type` is invalid or unavailable. |
+| `400` | The request, body or sequence `type` is invalid. |
 | `404` | A single requested transcript was not found. |
 | `500` | Required annotation or reference data is missing or inconsistent. |
