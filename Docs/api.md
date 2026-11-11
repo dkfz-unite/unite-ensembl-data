@@ -29,3 +29,5 @@ Example response:
 - [Genes](./api-genes.md)
 - [Transcripts](./api-transcripts.md)
 - [Proteins](./api-proteins.md)
+- [Variant liftover API](./api-liftover.md)
+- [Liftover method and quality rules](./liftover.md)

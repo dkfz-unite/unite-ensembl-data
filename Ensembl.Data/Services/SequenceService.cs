@@ -1,8 +1,11 @@
+using System.Data;
 using System.Text;
 using Ensembl.Data.Entities;
 using Ensembl.Data.Helpers;
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Services.Configuration.Constants;
 using Microsoft.EntityFrameworkCore;
+
 using GeneModel = Ensembl.Data.Models.Gene;
 using ProteinModel = Ensembl.Data.Models.Protein;
 using TranscriptEntity = Ensembl.Data.Entities.Transcript;
@@ -13,11 +16,16 @@ namespace Ensembl.Data.Services;
 public class SequenceService
 {
     private readonly EnsemblDbContext _dbContext;
+    private readonly Dictionary<string, int> _seqRegionIds = [];
+
+    public readonly byte Genome;
 
 
     public SequenceService(EnsemblDbContext dbContext)
     {
         _dbContext = dbContext;
+
+        Genome = dbContext.Genome;
     }
 
 
@@ -69,6 +77,98 @@ public class SequenceService
             .ToArray();
 
         return ApplyEdits(peptide, ReadEdits(attributes));
+    }
+
+    public string GetForRegion(string chromosome, int start, int end)
+    {
+        return ReadSequence(chromosome, start, end, true);
+    }
+
+    public Dictionary<int, string> GetForRegions(CoordinateRegion[] regions)
+    {
+        var result = new Dictionary<int, char[]>();
+        if (regions.Length == 0)
+            return [];
+
+        var version = $"GRCh{_dbContext.Genome}";
+        var chromosomeNames = regions.Select(region => region.Chromosome).Distinct().ToArray();
+        var chromosomes = _dbContext.SeqRegions.AsNoTracking()
+            .Where(region => chromosomeNames.Contains(region.Name))
+            .Where(region => region.CoordSystem.Name == "chromosome" && region.CoordSystem.Version == version)
+            .Select(region => new { region.Name, region.SeqRegionId })
+            .ToDictionary(region => region.Name, region => region.SeqRegionId);
+        var chromosomeIds = chromosomes.Values.ToArray();
+        var exceptions = _dbContext.AssemblyExceptions.AsNoTracking()
+            .Where(exception => chromosomeIds.Contains(exception.SeqRegionId))
+            .Where(exception => exception.ExceptionType == "PAR")
+            .ToArray();
+        var directRegions = _dbContext.Dnas.AsNoTracking()
+            .Where(dna => chromosomeIds.Contains(dna.SeqRegionId))
+            .Select(dna => dna.SeqRegionId)
+            .ToHashSet();
+        var mappings = _dbContext.AssemblyMappings.AsNoTracking()
+            .Where(mapping => chromosomeIds.Contains(mapping.AssemblySeqRegionId))
+            .Where(mapping => mapping.ComponentSeqRegion.CoordSystem.Attrib.Contains("sequence_level"))
+            .OrderBy(mapping => mapping.AssemblyStart)
+            .ToArray()
+            .GroupBy(mapping => mapping.AssemblySeqRegionId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var parts = new List<SequencePart>();
+
+        foreach (var region in regions)
+        {
+            var seqRegionId = chromosomes[region.Chromosome];
+            var sequence = new string('N', region.End - region.Start + 1).ToCharArray();
+            result[region.Id] = sequence;
+
+            if (exceptions.Any(exception =>
+                    exception.SeqRegionId == seqRegionId &&
+                    exception.SeqRegionStart <= region.End &&
+                    exception.SeqRegionEnd >= region.Start))
+            {
+                result[region.Id] = ReadSequence(seqRegionId, region.Start, region.End).ToCharArray();
+                continue;
+            }
+
+            if (directRegions.Contains(seqRegionId))
+            {
+                parts.Add(new SequencePart(parts.Count, region.Id, seqRegionId, region.Start,
+                    region.End - region.Start + 1, 0, true));
+                continue;
+            }
+
+            if (!mappings.TryGetValue(seqRegionId, out var chromosomeMappings))
+                continue;
+
+            foreach (var mapping in chromosomeMappings
+                         .Where(mapping => mapping.AssemblyStart <= region.End && mapping.AssemblyEnd >= region.Start))
+            {
+                var mappingStart = Math.Max(region.Start, mapping.AssemblyStart);
+                var mappingEnd = Math.Min(region.End, mapping.AssemblyEnd);
+                var componentStart = mapping.Orientation == 1
+                    ? mapping.ComponentStart + mappingStart - mapping.AssemblyStart
+                    : mapping.ComponentEnd - mappingEnd + mapping.AssemblyStart;
+
+                parts.Add(new SequencePart(
+                    parts.Count,
+                    region.Id,
+                    mapping.ComponentSeqRegionId,
+                    componentStart,
+                    mappingEnd - mappingStart + 1,
+                    mappingStart - region.Start,
+                    mapping.Orientation == 1));
+            }
+        }
+
+        foreach (var part in ReadParts(parts))
+        {
+            var sequence = part.Forward
+                ? part.Sequence
+                : NucleotideSequence.ReverseComplement(part.Sequence);
+            sequence.CopyTo(0, result[part.RegionIndex], part.Offset, sequence.Length);
+        }
+
+        return result.ToDictionary(item => item.Key, item => new string(item.Value));
     }
 
 
@@ -134,11 +234,15 @@ public class SequenceService
     private string ReadSequence(string chromosome, int start, int end, bool forward)
     {
         var version = $"GRCh{_dbContext.Genome}";
-        var seqRegionId = _dbContext.SeqRegions.AsNoTracking()
-            .Where(region => region.Name == chromosome)
-            .Where(region => region.CoordSystem.Name == "chromosome" && region.CoordSystem.Version == version)
-            .Select(region => region.SeqRegionId)
-            .Single();
+        if (!_seqRegionIds.TryGetValue(chromosome, out var seqRegionId))
+        {
+            seqRegionId = _dbContext.SeqRegions.AsNoTracking()
+                .Where(region => region.Name == chromosome)
+                .Where(region => region.CoordSystem.Name == "chromosome" && region.CoordSystem.Version == version)
+                .Select(region => region.SeqRegionId)
+                .Single();
+            _seqRegionIds[chromosome] = seqRegionId;
+        }
 
         return ReadSequence(seqRegionId, start, end, forward);
     }
@@ -146,7 +250,7 @@ public class SequenceService
     private string ReadSequence(int seqRegionId, int start, int end, bool forward)
     {
         var sequence = ReadSequence(seqRegionId, start, end);
-        return forward ? sequence : ReverseComplement(sequence);
+        return forward ? sequence : NucleotideSequence.ReverseComplement(sequence);
     }
 
     private string ReadSequence(int seqRegionId, int start, int end)
@@ -177,7 +281,7 @@ public class SequenceService
                 : exception.ExceptionSeqRegionEnd - exceptionEnd + exception.SeqRegionStart;
             var mappedEnd = mappedStart + exceptionEnd - exceptionStart;
             var mapped = ReadSequence(exception.ExceptionSeqRegionId, mappedStart, mappedEnd);
-            sequence.Append(exception.Orientation == 1 ? mapped : ReverseComplement(mapped));
+            sequence.Append(exception.Orientation == 1 ? mapped : NucleotideSequence.ReverseComplement(mapped));
             cursor = exceptionEnd + 1;
         }
 
@@ -218,35 +322,12 @@ public class SequenceService
             var componentEnd = componentStart + mappingEnd - mappingStart;
             var component = ReadAssembly(mapping.ComponentSeqRegionId, componentStart, componentEnd);
             if (mapping.Orientation == -1)
-                component = ReverseComplement(component);
+                component = NucleotideSequence.ReverseComplement(component);
 
             component.CopyTo(0, sequence, mappingStart - start, component.Length);
         }
 
         return new string(sequence);
-    }
-
-    private static string ReverseComplement(string sequence)
-    {
-        return string.Create(sequence.Length, sequence, (result, source) =>
-        {
-            for (var index = 0; index < result.Length; index++)
-                result[index] = Complement(source[source.Length - index - 1]);
-        });
-    }
-
-    private static char Complement(char nucleotide)
-    {
-        return nucleotide switch
-        {
-            'A' => 'T',
-            'C' => 'G',
-            'G' => 'C',
-            'T' => 'A',
-            'R' => 'Y', 'Y' => 'R', 'S' => 'S', 'W' => 'W',
-            'K' => 'M', 'M' => 'K', 'B' => 'V', 'V' => 'B', 'D' => 'H', 'H' => 'D',
-            _ => 'N'
-        };
     }
 
     private static SequenceEdit[] ReadEdits(IEnumerable<string> values)
@@ -272,6 +353,55 @@ public class SequenceService
         return sequence;
     }
 
+    private IEnumerable<SequencePartResult> ReadParts(List<SequencePart> parts)
+    {
+        const int batchSize = 500;
+        var connection = _dbContext.Database.GetDbConnection();
+        var closeConnection = connection.State != ConnectionState.Open;
+
+        if (closeConnection)
+            connection.Open();
+
+        try
+        {
+            foreach (var batch in parts.Chunk(batchSize))
+            {
+                using var command = connection.CreateCommand();
+                command.CommandText = string.Join(" UNION ALL ", batch.Select(part =>
+                    $"SELECT {part.Id}, UPPER(SUBSTRING(sequence, {part.Start}, {part.Length})) " +
+                    $"FROM dna WHERE seq_region_id = {part.SeqRegionId}"));
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var id = reader.GetInt32(0);
+                    var part = parts[id];
+                    yield return new SequencePartResult(
+                        part.RegionIndex,
+                        part.Offset,
+                        part.Forward,
+                        reader.GetString(1));
+                }
+            }
+        }
+        finally
+        {
+            if (closeConnection)
+                connection.Close();
+        }
+    }
+
 
     private record SequenceEdit(int Start, int Length, string Replacement);
+
+    private record SequencePart(
+        int Id,
+        int RegionIndex,
+        int SeqRegionId,
+        int Start,
+        int Length,
+        int Offset,
+        bool Forward);
+
+    private record SequencePartResult(int RegionIndex, int Offset, bool Forward, string Sequence);
 }

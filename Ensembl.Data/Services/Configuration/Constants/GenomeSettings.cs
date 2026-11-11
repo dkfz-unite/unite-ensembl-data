@@ -2,5 +2,7 @@ namespace Ensembl.Data.Services.Configuration.Constants;
 
 public static class GenomeSettings
 {
-    public static readonly string[] ChromosomeNames = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y", "MT" };
+    public static readonly string[] ChromosomeNames = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y", "MT"];
+
+    public static bool IsValidChromosome(string chromosome) => ChromosomeNames.Contains(chromosome, StringComparer.OrdinalIgnoreCase);
 }

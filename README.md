@@ -18,6 +18,7 @@ Reasons why custom API is required:
 
 ## Dependencies
 - [MySQL](https://github.com/dkfz-unite/unite-environment/tree/main/programs/mysql) - MySQL server with Ensembl homo sapience database.
+- [UCSC liftOver](https://genome.ucsc.edu/cgi-bin/hgLiftOver) - coordinate conversion between GRCh37 and GRCh38.
 
 
 ## Access
@@ -36,6 +37,8 @@ ENSEMBL_SQL_HOST|SQL server host|localhost|mysql.unite.net
 ENSEMBL_SQL_PORT|SQL server port|3306|3306
 ENSEMBL_SQL_USER|SQL server user||
 ENSEMBL_SQL_PASSWORD|SQL server password||
+ENSEMBL_LIFTOVER_EXECUTABLE|Path to the UCSC liftOver executable|liftOver|liftOver
+ENSEMBL_LIFTOVER_CHAINS_PATH|Directory containing the GRCh37↔GRCh38 chain files|/chains|/chains
 
 The service uses Ensembl release 116 (the last release published on ftp.ensembl.org): databases `homo_sapiens_core_116_37` (GRCh37) and `homo_sapiens_core_116_38` (GRCh38).
 Gene, transcript and protein endpoints select the build with the `/api/grch37`
@@ -47,6 +50,8 @@ The [genes](Docs/api-genes.md), [transcripts](Docs/api-transcripts.md) and
 [proteins](Docs/api-proteins.md) APIs retrieve individual feature sequences by
 Ensembl ID, symbol or protein accession. They use the annotation and sequence
 tables for the requested build.
+The [simple mutation liftover API](Docs/api-liftover.md) converts mutations in
+both directions and verifies their reference sequence against both builds.
 The setup scripts are maintained in
 [unite-env/applications/unite-ensembl-data](https://github.com/dkfz-unite/unite-env/tree/liftover/applications/unite-ensembl-data).
 
