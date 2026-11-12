@@ -1,5 +1,5 @@
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Services;
-using Ensembl.Data.Services.Configuration.Constants;
 using Ensembl.Data.Web.Controllers.Extensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -39,14 +39,10 @@ public abstract class TranscriptsControllerBase : Controller
     }
 
     [HttpGet("id/{id}/sequence")]
-    public IActionResult FindSequence(string id, string type = SequenceType.Genomic)
+    public IActionResult FindSequence(string id, SequenceType type = SequenceType.Genomic)
     {
         if (string.IsNullOrWhiteSpace(id))
             return BadRequest("Transcript ID is not set.");
-
-        type = type?.Trim().ToLowerInvariant();
-        if (type is not (SequenceType.Genomic or SequenceType.Cdna or SequenceType.Cds))
-            return BadRequest("Transcript sequence type must be genomic, cdna or cds.");
 
         var transcript = _searchService.Find(id.Trim().ToLowerInvariant());
         if (transcript == null)
@@ -97,14 +93,10 @@ public abstract class TranscriptsControllerBase : Controller
     }
 
     [HttpGet("symbol/{symbol}/sequence")]
-    public IActionResult FindSequenceByName(string symbol, string type = SequenceType.Genomic)
+    public IActionResult FindSequenceByName(string symbol, SequenceType type = SequenceType.Genomic)
     {
         if (string.IsNullOrWhiteSpace(symbol))
             return BadRequest("Transcript symbol is not set.");
-
-        type = type?.Trim().ToLowerInvariant();
-        if (type is not (SequenceType.Genomic or SequenceType.Cdna or SequenceType.Cds))
-            return BadRequest("Transcript sequence type must be genomic, cdna or cds.");
 
         var transcript = _searchService.FindByName(symbol.Trim().ToLowerInvariant());
         if (transcript == null)

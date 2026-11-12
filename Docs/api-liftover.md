@@ -38,6 +38,10 @@ For example, a three-base variant uses `start: 140453136` and
 null `ref`; their `start` is the base after the VCF anchor and `end` is omitted.
 Deletions have a null `alt`.
 
+Chromosomes are returned in canonical form (`1`–`22`, `X`, `Y`, `MT`). Input
+is case-insensitive and also accepts `chr`-prefixed aliases such as `chr7`,
+`chrX` and `chrM`.
+
 The response preserves input order and pairs every source mutation with its
 lifted target. `target` is null when the mutation cannot be lifted:
 
@@ -127,7 +131,9 @@ The SV body uses the same two-location representation as the Omics feed:
 ```
 
 Supported types are `DUP`, `TDUP`, `INS`, `DEL`, `INV`, `ITX`, `CTX` and
-`COM`. Coordinates are positive, one-based values. The meaning of the two
+`COM`. Type input is case-insensitive and also accepts descriptive aliases such
+as `deletion`, `inversion` and `tandem duplication`; responses use the canonical
+short type. Coordinates are positive, one-based values. The meaning of the two
 locations depends on the type:
 
 | Types | First location | Second location |

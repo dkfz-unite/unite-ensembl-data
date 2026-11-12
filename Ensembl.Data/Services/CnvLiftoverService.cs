@@ -1,6 +1,7 @@
 using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Models.Liftover.Variants;
 using Ensembl.Data.Services.Configuration.Constants;
+using Unite.Essentials.Attributes;
 
 namespace Ensembl.Data.Services;
 
@@ -24,12 +25,12 @@ public class CnvLiftoverService
         _coordinateLiftoverService = coordinateLiftoverService;
     }
 
-    public async Task<Dictionary<int, CnvLiftoverOutcome>> Lift(Dictionary<int, CnvRegion> regions)
+    public async Task<Dictionary<int, LiftoverOutcome<CnvRegion>>> Lift(Dictionary<int, CnvRegion> regions)
     {
         var coordinates = regions.Select(item => new CoordinateRegion
         {
             Id = item.Key,
-            Chromosome = item.Value.Chromosome,
+            Chromosome = item.Value.Chromosome.ToAliasString(),
             Start = item.Value.Start,
             End = item.Value.End
         }).ToArray();
@@ -42,7 +43,7 @@ public class CnvLiftoverService
 
         var mappedById = mapped.ToDictionary(region => region.Id);
         
-        var outcomes = new Dictionary<int, CnvLiftoverOutcome>();
+        var outcomes = new Dictionary<int, LiftoverOutcome<CnvRegion>>();
 
         foreach (var (id, source) in regions)
         {
@@ -52,8 +53,8 @@ public class CnvLiftoverService
                 continue;
             }
 
-            if (!GenomeSettings.IsValidChromosome(region.Chromosome) ||
-                region.Chromosome != source.Chromosome ||
+            if (!GenomeSettings.TryParseChromosome(region.Chromosome, out var chromosome) ||
+                chromosome != source.Chromosome ||
                 region.End <= region.Start)
             {
                 outcomes[id] = Failed(LiftoverReason.InvalidMapping);
@@ -70,11 +71,11 @@ public class CnvLiftoverService
                 continue;
             }
 
-            outcomes[id] = new CnvLiftoverOutcome
+            outcomes[id] = new LiftoverOutcome<CnvRegion>
             {
                 Region = new CnvRegion
                 {
-                    Chromosome = region.Chromosome,
+                    Chromosome = chromosome,
                     Start = region.Start,
                     End = region.End
                 },
@@ -85,9 +86,9 @@ public class CnvLiftoverService
         return outcomes;
     }
 
-    private static CnvLiftoverOutcome Failed(string reason)
+    private static LiftoverOutcome<CnvRegion> Failed(LiftoverReason reason)
     {
-        return new CnvLiftoverOutcome
+        return new LiftoverOutcome<CnvRegion>
         {
             Region = null,
             Reason = reason

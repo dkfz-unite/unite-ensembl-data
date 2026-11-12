@@ -1,4 +1,4 @@
-using Ensembl.Data.Services.Configuration.Constants;
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Web.Models.Liftover.Variants;
 using FluentValidation;
 
@@ -9,10 +9,10 @@ public class SvValidator : AbstractValidator<Sv>
     public SvValidator()
     {
         RuleFor(variant => variant.Chromosome)
-            .NotEmpty()
+            .NotNull()
             .WithMessage("Should not be empty")
-            .Must(GenomeSettings.IsValidChromosome)
-            .When(variant => !string.IsNullOrWhiteSpace(variant.Chromosome), ApplyConditionTo.CurrentValidator)
+            .IsInEnum()
+            .When(variant => variant.Chromosome.HasValue, ApplyConditionTo.CurrentValidator)
             .WithMessage("Should be a chromosome from 1 to 22, X, Y or MT");
 
         RuleFor(variant => variant.Start)
@@ -30,10 +30,10 @@ public class SvValidator : AbstractValidator<Sv>
             .WithMessage("Should be a positive integer");
 
         RuleFor(variant => variant.OtherChromosome)
-            .NotEmpty()
+            .NotNull()
             .WithMessage("Should not be empty")
-            .Must(GenomeSettings.IsValidChromosome)
-            .When(variant => !string.IsNullOrWhiteSpace(variant.OtherChromosome), ApplyConditionTo.CurrentValidator)
+            .IsInEnum()
+            .When(variant => variant.OtherChromosome.HasValue, ApplyConditionTo.CurrentValidator)
             .WithMessage("Should be a chromosome from 1 to 22, X, Y or MT");
 
         RuleFor(variant => variant.OtherStart)
@@ -51,11 +51,11 @@ public class SvValidator : AbstractValidator<Sv>
             .WithMessage("Should be a positive integer");
 
         RuleFor(variant => variant.Type)
-            .NotEmpty()
+            .NotNull()
             .WithMessage("Should not be empty")
-            .Must(type => SvType.All.Contains(type))
-            .When(variant => !string.IsNullOrWhiteSpace(variant.Type), ApplyConditionTo.CurrentValidator)
-            .WithMessage($"Should be one of: {string.Join(", ", SvType.All)}");
+            .IsInEnum()
+            .When(variant => variant.Type.HasValue, ApplyConditionTo.CurrentValidator)
+            .WithMessage($"Should be one of: {string.Join(", ", Enum.GetNames<SvType>())}");
 
         RuleFor(variant => variant)
             .Custom(ValidateCoordinates);
@@ -63,12 +63,13 @@ public class SvValidator : AbstractValidator<Sv>
 
     private static void ValidateCoordinates(Sv variant, ValidationContext<Sv> context)
     {
-        if (!variant.Start.HasValue || !variant.End.HasValue ||
+        if (!variant.Chromosome.HasValue || !variant.OtherChromosome.HasValue ||
+            !variant.Start.HasValue || !variant.End.HasValue ||
             !variant.OtherStart.HasValue || !variant.OtherEnd.HasValue ||
-            string.IsNullOrEmpty(variant.Type))
+            !variant.Type.HasValue)
             return;
 
-        if (variant.Type == SvType.Duplication)
+        if (variant.Type == SvType.DUP)
         {
             if (variant.Start == 1)
                 context.AddFailure(nameof(Sv.Start), "Copied region must have a preceding reference base");
@@ -83,7 +84,7 @@ public class SvValidator : AbstractValidator<Sv>
         if (variant.OtherEnd != variant.OtherStart + 1)
             context.AddFailure(nameof(Sv.OtherEnd), "Should equal OtherStart + 1 for an exact breakpoint");
 
-        if (SvType.RangeBased.Contains(variant.Type))
+        if (variant.Type.Value.IsRangeBased())
         {
             if (variant.Chromosome != variant.OtherChromosome)
                 context.AddFailure(nameof(Sv.OtherChromosome), "Should match Chromosome for a range-based structural variant");
@@ -91,23 +92,24 @@ public class SvValidator : AbstractValidator<Sv>
                 context.AddFailure(nameof(Sv.OtherStart), "Should differ from Start for a range-based structural variant");
         }
 
-        if (variant.Type == SvType.IntrachromosomalTranslocation &&
+        if (variant.Type == SvType.ITX &&
             variant.Chromosome != variant.OtherChromosome)
             context.AddFailure(nameof(Sv.OtherChromosome), "Should match Chromosome for an intrachromosomal translocation");
 
-        if (variant.Type == SvType.InterchromosomalTranslocation &&
+        if (variant.Type == SvType.CTX &&
             variant.Chromosome == variant.OtherChromosome)
             context.AddFailure(nameof(Sv.OtherChromosome), "Should differ from Chromosome for an interchromosomal translocation");
 
-        if (variant.Type == SvType.IntrachromosomalTranslocation &&
+        if (variant.Type == SvType.ITX &&
             variant.Start == variant.OtherStart)
             context.AddFailure(nameof(Sv.OtherStart), "Should differ from Start for an intrachromosomal translocation");
 
-        if (variant.Type == SvType.Complex &&
+        if (variant.Type == SvType.COM &&
             variant.Chromosome == variant.OtherChromosome &&
             variant.Start == variant.OtherStart)
             context.AddFailure(nameof(Sv.OtherStart), "Should identify a different cut for a complex rearrangement");
     }
+
 }
 
 public class SvsValidator : AbstractValidator<Sv[]>

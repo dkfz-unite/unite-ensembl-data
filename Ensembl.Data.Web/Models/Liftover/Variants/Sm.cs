@@ -1,18 +1,19 @@
 using System.Text.Json.Serialization;
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Models.Liftover.Variants;
 
 namespace Ensembl.Data.Web.Models.Liftover.Variants;
 
 public class Sm
 {
-    private string _chromosome;
+    private Chromosome? _chromosome;
     private int? _start;
     private int? _end;
     private string _ref;
     private string _alt;
 
     [JsonPropertyName("chromosome")]
-    public string Chromosome { get => _chromosome?.Trim().ToUpper(); set => _chromosome = value; }
+    public Chromosome? Chromosome { get => _chromosome; set => _chromosome = value; }
 
     [JsonPropertyName("start")]
     public int? Start { get => _start; set => _start = value; }
@@ -30,7 +31,7 @@ public class Sm
     {
         return new SmRegion
         {
-            Chromosome = Chromosome,
+            Chromosome = Chromosome.Value,
             Start = Start.Value,
             End = End ?? Start.Value,
             Ref = Ref,

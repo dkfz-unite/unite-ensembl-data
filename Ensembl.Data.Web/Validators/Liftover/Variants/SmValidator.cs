@@ -1,4 +1,4 @@
-using Ensembl.Data.Services.Configuration.Constants;
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Web.Models.Liftover.Variants;
 using FluentValidation;
 
@@ -9,10 +9,10 @@ public class SmValidator : AbstractValidator<Sm>
     public SmValidator()
     {
         RuleFor(variant => variant.Chromosome)
-            .NotEmpty()
+            .NotNull()
             .WithMessage("Should not be empty")
-            .Must(GenomeSettings.IsValidChromosome)
-            .When(variant => !string.IsNullOrWhiteSpace(variant.Chromosome), ApplyConditionTo.CurrentValidator)
+            .IsInEnum()
+            .When(variant => variant.Chromosome.HasValue, ApplyConditionTo.CurrentValidator)
             .WithMessage("Should be a chromosome from 1 to 22, X, Y or MT");
 
         RuleFor(variant => variant.Start)

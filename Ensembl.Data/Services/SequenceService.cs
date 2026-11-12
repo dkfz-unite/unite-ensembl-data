@@ -3,7 +3,6 @@ using System.Text;
 using Ensembl.Data.Entities;
 using Ensembl.Data.Helpers;
 using Ensembl.Data.Models.Liftover;
-using Ensembl.Data.Services.Configuration.Constants;
 using Microsoft.EntityFrameworkCore;
 
 using GeneModel = Ensembl.Data.Models.Gene;
@@ -34,7 +33,7 @@ public class SequenceService
         return ReadSequence(gene.Chromosome, gene.Start, gene.End, gene.Strand);
     }
 
-    public string GetForTranscript(TranscriptModel model, string type)
+    public string GetForTranscript(TranscriptModel model, SequenceType type)
     {
         if (type == SequenceType.Genomic)
             return ReadSequence(model.Chromosome, model.Start, model.End, model.Strand);
@@ -273,6 +272,7 @@ public class SequenceService
         {
             var exceptionStart = Math.Max(start, exception.SeqRegionStart);
             var exceptionEnd = Math.Min(end, exception.SeqRegionEnd);
+
             if (cursor < exceptionStart)
                 sequence.Append(ReadAssembly(seqRegionId, cursor, exceptionStart - 1));
 
@@ -321,6 +321,7 @@ public class SequenceService
                 : mapping.ComponentEnd - mappingEnd + mapping.AssemblyStart;
             var componentEnd = componentStart + mappingEnd - mappingStart;
             var component = ReadAssembly(mapping.ComponentSeqRegionId, componentStart, componentEnd);
+
             if (mapping.Orientation == -1)
                 component = NucleotideSequence.ReverseComplement(component);
 
@@ -338,7 +339,9 @@ public class SequenceService
             var start = int.Parse(parts[0]);
             var end = int.Parse(parts[1]);
             var replacement = parts.Length == 3 ? parts[2].Trim().ToUpperInvariant() : "";
+
             return new SequenceEdit(start, end - start + 1, replacement);
+
         }).OrderByDescending(edit => edit.Start).ToArray();
     }
 
@@ -376,6 +379,7 @@ public class SequenceService
                 {
                     var id = reader.GetInt32(0);
                     var part = parts[id];
+
                     yield return new SequencePartResult(
                         part.RegionIndex,
                         part.Offset,

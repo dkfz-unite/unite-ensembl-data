@@ -1,13 +1,7 @@
 namespace Ensembl.Data.Models.Liftover.Variants;
 
-public class SmRegion
+public class SmRegion : VariantRegion
 {
-    public string Chromosome { get; set; }
-
-    public int Start { get; set; }
-
-    public int End { get; set; }
-
     public string Ref { get; set; }
 
     public string Alt { get; set; }

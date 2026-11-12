@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Ensembl.Data.Models.Liftover;
 
 namespace Ensembl.Data.Web.Models.Liftover;
 
@@ -11,5 +12,5 @@ public class LiftoverResult<T>
     public T Target { get; init; }
 
     [JsonPropertyName("reason")]
-    public string Reason { get; init; }
+    public LiftoverReason? Reason { get; init; }
 }

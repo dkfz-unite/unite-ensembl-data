@@ -19,6 +19,7 @@ Reasons why custom API is required:
 ## Dependencies
 - [MySQL](https://github.com/dkfz-unite/unite-environment/tree/main/programs/mysql) - MySQL server with Ensembl homo sapience database.
 - [UCSC liftOver](https://genome.ucsc.edu/cgi-bin/hgLiftOver) - coordinate conversion between GRCh37 and GRCh38.
+- [Unite.Essentials](https://github.com/dkfz-unite/unite-essentials) - shared enum aliases and JSON conversion.
 
 
 ## Access
@@ -68,8 +69,15 @@ The easiest way to install the application is to use docker-compose:
 [Dockerfile](Dockerfile) is used to build an image of the application.
 To build an image run the following command:
 ```
-docker build -t unite.ensembl.data:latest .
+docker build \
+--build-arg USER=[github_user] \
+--build-arg TOKEN=[github_token] \
+-t unite.ensembl.data:latest .
 ```
+
+The GitHub credentials require package read access and are used to restore
+private UNITE NuGet packages. The `unite-env` build scripts pass them from
+`.env.secrets`.
 
 All application components should run in the same docker network.
 To create common docker network if not yet available run the following command:

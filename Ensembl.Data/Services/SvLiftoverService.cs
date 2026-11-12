@@ -2,6 +2,7 @@ using Ensembl.Data.Helpers;
 using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Models.Liftover.Variants;
 using Ensembl.Data.Services.Configuration.Constants;
+using Unite.Essentials.Attributes;
 
 namespace Ensembl.Data.Services;
 
@@ -25,20 +26,20 @@ public class SvLiftoverService
         _coordinateLiftoverService = coordinateLiftoverService;
     }
 
-    public async Task<Dictionary<int, SvLiftoverOutcome>> Lift(Dictionary<int, SvRegion> regions)
+    public async Task<Dictionary<int, LiftoverOutcome<SvRegion>>> Lift(Dictionary<int, SvRegion> regions)
     {
-        var outcomes = new Dictionary<int, SvLiftoverOutcome>();
+        var outcomes = new Dictionary<int, LiftoverOutcome<SvRegion>>();
 
         var rangeBased = regions
-            .Where(item => SvType.RangeBased.Contains(item.Value.Type))
+            .Where(item => item.Value.Type.IsRangeBased())
             .ToDictionary();
 
         var breakpointBased = regions
-            .Where(item => SvType.BreakpointBased.Contains(item.Value.Type))
+            .Where(item => item.Value.Type.IsBreakpointBased())
             .ToDictionary();
             
         var duplications = regions
-            .Where(item => item.Value.Type == SvType.Duplication)
+            .Where(item => item.Value.Type == SvType.DUP)
             .ToDictionary();
 
         await LiftRangeBased(rangeBased, outcomes);
@@ -50,7 +51,7 @@ public class SvLiftoverService
 
     private async Task LiftRangeBased(
         Dictionary<int, SvRegion> regions,
-        Dictionary<int, SvLiftoverOutcome> outcomes)
+        Dictionary<int, LiftoverOutcome<SvRegion>> outcomes)
     {
         if (regions.Count == 0)
             return;
@@ -77,7 +78,7 @@ public class SvLiftoverService
 
             if (reason != null)
             {
-                outcomes[id] = Failed(reason);
+                outcomes[id] = Failed(reason.Value);
                 continue;
             }
 
@@ -88,8 +89,8 @@ public class SvLiftoverService
                 range.Region.Chromosome != first.Region.Chromosome ||
                 range.Region.Start != expectedStart ||
                 range.Region.End != expectedEnd ||
-                first.Region.Forward != range.Region.Forward ||
-                second.Region.Forward != range.Region.Forward)
+                first.Region.Strand != range.Region.Strand ||
+                second.Region.Strand != range.Region.Strand)
             {
                 outcomes[id] = Failed(LiftoverReason.InvalidMapping);
                 continue;
@@ -97,23 +98,23 @@ public class SvLiftoverService
 
             outcomes[id] = Succeeded(new SvRegion
             {
-                Chromosome = first.Region.Chromosome,
+                Chromosome = first.Region.Chromosome.FromAliasString<Chromosome>(),
                 Start = first.Region.Start,
                 End = first.Region.End,
-                OtherChromosome = second.Region.Chromosome,
+                OtherChromosome = second.Region.Chromosome.FromAliasString<Chromosome>(),
                 OtherStart = second.Region.Start,
                 OtherEnd = second.Region.End,
                 Type = source.Type,
                 Inverted = TransformInverted(
                     source.Inverted,
-                    first.Region.Forward != second.Region.Forward)
+                    first.Region.Strand != second.Region.Strand)
             });
         }
     }
 
     private async Task LiftBreakpointBased(
         Dictionary<int, SvRegion> regions,
-        Dictionary<int, SvLiftoverOutcome> outcomes)
+        Dictionary<int, LiftoverOutcome<SvRegion>> outcomes)
     {
         if (regions.Count == 0)
             return;
@@ -135,16 +136,16 @@ public class SvLiftoverService
 
             if (reason != null)
             {
-                outcomes[id] = Failed(reason);
+                outcomes[id] = Failed(reason.Value);
                 continue;
             }
 
             var targetSameChromosome = first.Region.Chromosome == second.Region.Chromosome;
             var topologyIsValid = source.Type switch
             {
-                SvType.IntrachromosomalTranslocation => targetSameChromosome,
-                SvType.InterchromosomalTranslocation => !targetSameChromosome,
-                SvType.Complex => targetSameChromosome == (source.Chromosome == source.OtherChromosome),
+                SvType.ITX => targetSameChromosome,
+                SvType.CTX => !targetSameChromosome,
+                SvType.COM => targetSameChromosome == (source.Chromosome == source.OtherChromosome),
                 _ => false
             };
 
@@ -156,23 +157,23 @@ public class SvLiftoverService
 
             outcomes[id] = Succeeded(new SvRegion
             {
-                Chromosome = first.Region.Chromosome,
+                Chromosome = first.Region.Chromosome.FromAliasString<Chromosome>(),
                 Start = first.Region.Start,
                 End = first.Region.End,
-                OtherChromosome = second.Region.Chromosome,
+                OtherChromosome = second.Region.Chromosome.FromAliasString<Chromosome>(),
                 OtherStart = second.Region.Start,
                 OtherEnd = second.Region.End,
                 Type = source.Type,
                 Inverted = TransformInverted(
                     source.Inverted,
-                    first.Region.Forward != second.Region.Forward)
+                    first.Region.Strand != second.Region.Strand)
             });
         }
     }
 
     private async Task LiftDuplications(
         Dictionary<int, SvRegion> regions,
-        Dictionary<int, SvLiftoverOutcome> outcomes)
+        Dictionary<int, LiftoverOutcome<SvRegion>> outcomes)
     {
         if (regions.Count == 0)
             return;
@@ -188,7 +189,7 @@ public class SvLiftoverService
             ranges[id] = new CoordinateRegion
             {
                 Id = id,
-                Chromosome = region.Chromosome,
+                Chromosome = region.Chromosome.ToAliasString(),
                 Start = region.Start,
                 End = region.End
             };
@@ -207,7 +208,7 @@ public class SvLiftoverService
 
             if (reason != null)
             {
-                outcomes[id] = Failed(reason);
+                outcomes[id] = Failed(reason.Value);
                 continue;
             }
 
@@ -218,8 +219,8 @@ public class SvLiftoverService
                 range.Region.Chromosome != left.Region.Chromosome ||
                 range.Region.Start != expectedStart ||
                 range.Region.End != expectedEnd ||
-                left.Region.Forward != range.Region.Forward ||
-                right.Region.Forward != range.Region.Forward)
+                left.Region.Strand != range.Region.Strand ||
+                right.Region.Strand != range.Region.Strand)
             {
                 outcomes[id] = Failed(LiftoverReason.InvalidMapping);
                 continue;
@@ -227,21 +228,21 @@ public class SvLiftoverService
 
             outcomes[id] = Succeeded(new SvRegion
             {
-                Chromosome = range.Region.Chromosome,
+                Chromosome = range.Region.Chromosome.FromAliasString<Chromosome>(),
                 Start = range.Region.Start,
                 End = range.Region.End,
-                OtherChromosome = destination.Region.Chromosome,
+                OtherChromosome = destination.Region.Chromosome.FromAliasString<Chromosome>(),
                 OtherStart = destination.Region.Start,
                 OtherEnd = destination.Region.End,
                 Type = source.Type,
                 Inverted = TransformInverted(
                     source.Inverted,
-                    range.Region.Forward != destination.Region.Forward)
+                    range.Region.Strand != destination.Region.Strand)
             });
         }
     }
 
-    private async Task<Dictionary<int, (CoordinateRegion Region, string Reason)>> LiftBreakpoints(
+    private async Task<Dictionary<int, (CoordinateRegion Region, LiftoverReason? Reason)>> LiftBreakpoints(
         Dictionary<int, CoordinateRegion> regions)
     {
         var sourceSequences = _sourceSequenceService.GetForRegions(regions.Values.ToArray());
@@ -250,7 +251,7 @@ public class SvLiftoverService
             _targetSequenceService.Genome,
             regions.Values.ToArray());
         var mappedById = mapped.ToDictionary(region => region.Id);
-        var outcomes = new Dictionary<int, (CoordinateRegion Region, string Reason)>();
+        var outcomes = new Dictionary<int, (CoordinateRegion Region, LiftoverReason? Reason)>();
         var targetRegions = new Dictionary<int, CoordinateRegion>();
 
         foreach (var (id, source) in regions)
@@ -261,10 +262,10 @@ public class SvLiftoverService
                 continue;
             }
 
-            if (!GenomeSettings.IsValidChromosome(target.Chromosome) ||
+            if (!GenomeSettings.TryParseChromosome(target.Chromosome, out _) ||
                 target.Chromosome != source.Chromosome ||
                 target.End - target.Start != 1 ||
-                !target.Forward.HasValue)
+                !target.Strand.HasValue)
             {
                 outcomes[id] = (null, LiftoverReason.InvalidMapping);
                 continue;
@@ -277,7 +278,7 @@ public class SvLiftoverService
 
         foreach (var (id, target) in targetRegions)
         {
-            var expected = target.Forward.Value
+            var expected = target.Strand.Value
                 ? sourceSequences[id]
                 : NucleotideSequence.ReverseComplement(sourceSequences[id]);
 
@@ -289,7 +290,7 @@ public class SvLiftoverService
         return outcomes;
     }
 
-    private async Task<Dictionary<int, (CoordinateRegion Region, string Reason)>> LiftRanges(
+    private async Task<Dictionary<int, (CoordinateRegion Region, LiftoverReason? Reason)>> LiftRanges(
         Dictionary<int, CoordinateRegion> regions)
     {
         var mapped = await _coordinateLiftoverService.Lift(
@@ -298,7 +299,7 @@ public class SvLiftoverService
             regions.Values.ToArray(),
             MinimumRangeMatch);
         var mappedById = mapped.ToDictionary(region => region.Id);
-        var outcomes = new Dictionary<int, (CoordinateRegion Region, string Reason)>();
+        var outcomes = new Dictionary<int, (CoordinateRegion Region, LiftoverReason? Reason)>();
 
         foreach (var (id, source) in regions)
         {
@@ -308,10 +309,10 @@ public class SvLiftoverService
                 continue;
             }
 
-            if (!GenomeSettings.IsValidChromosome(target.Chromosome) ||
+            if (!GenomeSettings.TryParseChromosome(target.Chromosome, out _) ||
                 target.Chromosome != source.Chromosome ||
                 target.End < target.Start ||
-                !target.Forward.HasValue)
+                !target.Strand.HasValue)
             {
                 outcomes[id] = (null, LiftoverReason.InvalidMapping);
                 continue;
@@ -329,23 +330,23 @@ public class SvLiftoverService
         return outcomes;
     }
 
-    private static CoordinateRegion CreateBreakpoint(int id, string chromosome, int position)
+    private static CoordinateRegion CreateBreakpoint(int id, Chromosome chromosome, int position)
     {
         return new CoordinateRegion
         {
             Id = id,
-            Chromosome = chromosome,
+            Chromosome = chromosome.ToAliasString(),
             Start = position,
             End = position + 1
         };
     }
 
-    private static CoordinateRegion CreateRange(int id, string chromosome, int firstCut, int secondCut)
+    private static CoordinateRegion CreateRange(int id, Chromosome chromosome, int firstCut, int secondCut)
     {
         return new CoordinateRegion
         {
             Id = id,
-            Chromosome = chromosome,
+            Chromosome = chromosome.ToAliasString(),
             Start = Math.Min(firstCut, secondCut) + 1,
             End = Math.Max(firstCut, secondCut)
         };
@@ -356,26 +357,27 @@ public class SvLiftoverService
         return inverted.HasValue ? inverted.Value ^ orientationChanged : null;
     }
 
-    private static string FirstFailure(params string[] reasons)
+    private static LiftoverReason? FirstFailure(params LiftoverReason?[] reasons)
     {
-        return reasons.FirstOrDefault(reason => reason != null);
+        return reasons.FirstOrDefault(reason => reason.HasValue);
     }
 
-    private static SvLiftoverOutcome Succeeded(SvRegion region)
+    private static LiftoverOutcome<SvRegion> Succeeded(SvRegion region)
     {
-        return new SvLiftoverOutcome
+        return new LiftoverOutcome<SvRegion>
         {
             Region = region,
             Reason = null
         };
     }
 
-    private static SvLiftoverOutcome Failed(string reason)
+    private static LiftoverOutcome<SvRegion> Failed(LiftoverReason reason)
     {
-        return new SvLiftoverOutcome
+        return new LiftoverOutcome<SvRegion>
         {
             Region = null,
             Reason = reason
         };
     }
+
 }

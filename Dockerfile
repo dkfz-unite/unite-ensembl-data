@@ -8,7 +8,10 @@ RUN conda create -y -p /liftover --override-channels -c conda-forge -c bioconda 
     && conda clean -afy
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
+ARG USER
+ARG TOKEN
 WORKDIR /src
+RUN dotnet nuget add source https://nuget.pkg.github.com/dkfz-unite/index.json -n github -u ${USER} -p ${TOKEN} --store-password-in-clear-text
 COPY ["Ensembl.Data/Ensembl.Data.csproj", "Ensembl.Data/"]
 COPY ["Ensembl.Data.Web/Ensembl.Data.Web.csproj", "Ensembl.Data.Web/"]
 RUN dotnet restore "Ensembl.Data/Ensembl.Data.csproj"

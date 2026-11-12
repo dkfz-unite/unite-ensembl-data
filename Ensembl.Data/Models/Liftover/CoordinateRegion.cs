@@ -10,5 +10,8 @@ public class CoordinateRegion
 
     public int End { get; set; }
 
-    public bool? Forward { get; set; }
+    /// <summary>
+    /// Region strand: true for forward strand, false for reverse strand, null if unknown or unset.
+    /// </summary>
+    public bool? Strand { get; set; }
 }

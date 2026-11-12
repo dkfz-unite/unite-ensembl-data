@@ -2,6 +2,7 @@ using Ensembl.Data.Helpers;
 using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Models.Liftover.Variants;
 using Ensembl.Data.Services.Configuration.Constants;
+using Unite.Essentials.Attributes;
 
 namespace Ensembl.Data.Services;
 
@@ -21,7 +22,7 @@ public class SmLiftoverService
         _coordinateLiftoverService = coordinateLiftoverService;
     }
 
-    public async Task<Dictionary<int, SmLiftoverOutcome>> Lift(Dictionary<int, SmRegion> regions)
+    public async Task<Dictionary<int, LiftoverOutcome<SmRegion>>> Lift(Dictionary<int, SmRegion> regions)
     {
         EnrichSourceSequences(regions);
 
@@ -36,8 +37,9 @@ public class SmLiftoverService
             
         var mappedById = mapped.ToDictionary(region => region.Id);
 
-        var outcomes = new Dictionary<int, SmLiftoverOutcome>();
+        var outcomes = new Dictionary<int, LiftoverOutcome<SmRegion>>();
         var targetCoordinates = new Dictionary<int, CoordinateRegion>();
+        var targetChromosomes = new Dictionary<int, Chromosome>();
 
         foreach (var (id, source) in regions)
         {
@@ -48,14 +50,15 @@ public class SmLiftoverService
             }
 
             var sourceCoordinate = sourceCoordinates[id];
-            if (target.End - target.Start != sourceCoordinate.End - sourceCoordinate.Start ||
-                !GenomeSettings.IsValidChromosome(target.Chromosome))
+            if (!GenomeSettings.TryParseChromosome(target.Chromosome, out var chromosome) ||
+                target.End - target.Start != sourceCoordinate.End - sourceCoordinate.Start)
             {
                 outcomes[id] = Failed(LiftoverReason.InvalidMapping);
                 continue;
             }
 
             targetCoordinates[id] = target;
+            targetChromosomes[id] = chromosome;
         }
 
         var targetSequences = _targetSequenceService.GetForRegions(targetCoordinates.Values.ToArray());
@@ -63,7 +66,7 @@ public class SmLiftoverService
         foreach (var (id, target) in targetCoordinates)
         {
             var source = regions[id];
-            var expectedSequence = target.Forward.Value
+            var expectedSequence = target.Strand.Value
                 ? source.Seq
                 : NucleotideSequence.ReverseComplement(source.Seq);
 
@@ -73,9 +76,9 @@ public class SmLiftoverService
                 continue;
             }
 
-            outcomes[id] = new SmLiftoverOutcome
+            outcomes[id] = new LiftoverOutcome<SmRegion>
             {
-                Region = CreateTarget(source, target),
+                Region = CreateTarget(source, target, targetChromosomes[id]),
                 Reason = null
             };
         }
@@ -99,25 +102,25 @@ public class SmLiftoverService
         return new CoordinateRegion
         {
             Id = id,
-            Chromosome = region.Chromosome,
+            Chromosome = region.Chromosome.ToAliasString(),
             Start = region.SeqStart,
             End = region.SeqEnd
         };
     }
 
-    private static SmRegion CreateTarget(SmRegion source, CoordinateRegion target)
+    private static SmRegion CreateTarget(SmRegion source, CoordinateRegion target, Chromosome chromosome)
     {
         var start = source.IsInsertion
-            ? target.Forward.Value ? target.Start + 1 : target.Start
+            ? target.Strand.Value ? target.Start + 1 : target.Start
             : target.Start;
 
         return new SmRegion
         {
-            Chromosome = target.Chromosome,
+            Chromosome = chromosome,
             Start = start,
             End = source.IsInsertion ? start : target.End,
-            Ref = Transform(source.Ref, target.Forward.Value),
-            Alt = Transform(source.Alt, target.Forward.Value)
+            Ref = Transform(source.Ref, target.Strand.Value),
+            Alt = Transform(source.Alt, target.Strand.Value)
         };
     }
 
@@ -129,9 +132,9 @@ public class SmLiftoverService
         return forward ? sequence : NucleotideSequence.ReverseComplement(sequence);
     }
 
-    private static SmLiftoverOutcome Failed(string reason)
+    private static LiftoverOutcome<SmRegion> Failed(LiftoverReason reason)
     {
-        return new SmLiftoverOutcome
+        return new LiftoverOutcome<SmRegion>
         {
             Region = null,
             Reason = reason

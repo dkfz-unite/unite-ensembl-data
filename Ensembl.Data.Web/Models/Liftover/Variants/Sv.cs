@@ -1,31 +1,31 @@
 using System.Text.Json.Serialization;
+using Ensembl.Data.Models.Liftover;
 using Ensembl.Data.Models.Liftover.Variants;
-using Ensembl.Data.Services.Configuration.Constants;
 
 namespace Ensembl.Data.Web.Models.Liftover.Variants;
 
 public class Sv
 {
-    private string _chromosome;
+    private Chromosome? _chromosome;
     private int? _start;
     private int? _end;
-    private string _otherChromosome;
+    private Chromosome? _otherChromosome;
     private int? _otherStart;
     private int? _otherEnd;
-    private string _type;
+    private SvType? _type;
     private bool? _inverted;
 
     [JsonPropertyName("chromosome_1")]
-    public string Chromosome { get => _chromosome?.Trim().ToUpper(); set => _chromosome = value; }
+    public Chromosome? Chromosome { get => _chromosome; set => _chromosome = value; }
 
     [JsonPropertyName("start_1")]
     public int? Start { get => _start; set => _start = value; }
 
     [JsonPropertyName("end_1")]
-    public int? End { get => _end ?? (Type == SvType.Duplication ? null : _start + 1); set => _end = value; }
+    public int? End { get => _end ?? (Type == SvType.DUP ? null : _start + 1); set => _end = value; }
 
     [JsonPropertyName("chromosome_2")]
-    public string OtherChromosome { get => _otherChromosome?.Trim().ToUpper(); set => _otherChromosome = value; }
+    public Chromosome? OtherChromosome { get => _otherChromosome; set => _otherChromosome = value; }
 
     [JsonPropertyName("start_2")]
     public int? OtherStart { get => _otherStart; set => _otherStart = value; }
@@ -34,7 +34,7 @@ public class Sv
     public int? OtherEnd { get => _otherEnd ?? _otherStart + 1; set => _otherEnd = value; }
 
     [JsonPropertyName("type")]
-    public string Type { get => _type?.Trim().ToUpper(); set => _type = value; }
+    public SvType? Type { get => _type; set => _type = value; }
 
     [JsonPropertyName("inverted")]
     public bool? Inverted { get => _inverted; set => _inverted = value; }
@@ -43,13 +43,13 @@ public class Sv
     {
         return new SvRegion
         {
-            Chromosome = Chromosome,
+            Chromosome = Chromosome.Value,
             Start = Start.Value,
             End = End.Value,
-            OtherChromosome = OtherChromosome,
+            OtherChromosome = OtherChromosome.Value,
             OtherStart = OtherStart.Value,
             OtherEnd = OtherEnd.Value,
-            Type = Type,
+            Type = Type.Value,
             Inverted = Inverted
         };
     }

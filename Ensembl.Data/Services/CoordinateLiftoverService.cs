@@ -120,7 +120,7 @@ public class CoordinateLiftoverService
             Chromosome = chromosome,
             Start = int.Parse(fields[1], CultureInfo.InvariantCulture) + 1,
             End = int.Parse(fields[2], CultureInfo.InvariantCulture),
-            Forward = fields[5] == "+"
+            Strand = fields[5] == "+"
         };
     }
 }
