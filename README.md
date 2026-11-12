@@ -50,8 +50,9 @@ The [genes](Docs/api-genes.md), [transcripts](Docs/api-transcripts.md) and
 [proteins](Docs/api-proteins.md) APIs retrieve individual feature sequences by
 Ensembl ID, symbol or protein accession. They use the annotation and sequence
 tables for the requested build.
-The [simple mutation liftover API](Docs/api-liftover.md) converts mutations in
-both directions and verifies their reference sequence against both builds.
+The [variant liftover API](Docs/api-liftover.md) converts simple mutations,
+copy-number variants and structural variants in both directions. Exact variant
+breakpoints are verified against the reference sequence in both builds.
 The setup scripts are maintained in
 [unite-env/applications/unite-ensembl-data](https://github.com/dkfz-unite/unite-env/tree/liftover/applications/unite-ensembl-data).
 

@@ -9,6 +9,7 @@ public abstract class LiftoverControllerBase : Controller
 {
     private readonly SmLiftoverService _smLiftoverService;
     private readonly CnvLiftoverService _cnvLiftoverService;
+    private readonly SvLiftoverService _svLiftoverService;
 
     protected LiftoverControllerBase(
         EnsemblDbContext sourceContext,
@@ -17,6 +18,7 @@ public abstract class LiftoverControllerBase : Controller
     {
         _smLiftoverService = new SmLiftoverService(sourceContext, targetContext, coordinateLiftover);
         _cnvLiftoverService = new CnvLiftoverService(sourceContext, targetContext, coordinateLiftover);
+        _svLiftoverService = new SvLiftoverService(sourceContext, targetContext, coordinateLiftover);
     }
 
     [HttpPost("sms")]
@@ -60,6 +62,30 @@ public abstract class LiftoverControllerBase : Controller
             {
                 Source = variant,
                 Target = outcome.Region == null ? null : Cnv.FromRegion(outcome.Region),
+                Reason = outcome.Reason
+            };
+        });
+
+        return Json(results);
+    }
+
+    [HttpPost("svs")]
+    public async Task<IActionResult> LiftSvs([FromBody] Sv[] variants)
+    {
+        var regions = variants
+            .Select((variant, index) => new { Id = index, Region = variant.ToRegion() })
+            .ToDictionary(item => item.Id, item => item.Region);
+
+        var outcomes = await _svLiftoverService.Lift(regions);
+
+        var results = variants.Select((variant, index) =>
+        {
+            var outcome = outcomes[index];
+
+            return new LiftoverResult<Sv>
+            {
+                Source = variant,
+                Target = outcome.Region == null ? null : Sv.FromRegion(outcome.Region),
                 Reason = outcome.Reason
             };
         });

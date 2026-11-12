@@ -20,6 +20,7 @@ public static class ConfigurationExtensions
 		services.AddTransient<CoordinateLiftoverService>();
 		services.AddTransient<IValidator<Sm[]>, SmsValidator>();
 		services.AddTransient<IValidator<Cnv[]>, CnvsValidator>();
+		services.AddTransient<IValidator<Sv[]>, SvsValidator>();
 
 		// services.AddTransient<GeneSearchService>();
 		// services.AddTransient<TranscriptSearchService>();

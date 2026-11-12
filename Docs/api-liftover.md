@@ -1,7 +1,7 @@
 # Variant liftover API
 
-The liftover API converts UNITE simple mutations and copy-number variants
-between GRCh37 and GRCh38.
+The liftover API converts UNITE simple mutations, copy-number variants and
+structural variants between GRCh37 and GRCh38.
 Both source and target builds are explicit in the route.
 The coordinate conversion and quality-control rules are described in
 [Liftover method and quality rules](./liftover.md).
@@ -12,6 +12,8 @@ The coordinate conversion and quality-control rules are described in
 | `POST` | `/api/grch38/liftover/grch37/sms` | Lift simple mutations from GRCh38 to GRCh37. |
 | `POST` | `/api/grch37/liftover/grch38/cnvs` | Lift copy-number variants from GRCh37 to GRCh38. |
 | `POST` | `/api/grch38/liftover/grch37/cnvs` | Lift copy-number variants from GRCh38 to GRCh37. |
+| `POST` | `/api/grch37/liftover/grch38/svs` | Lift structural variants from GRCh37 to GRCh38. |
+| `POST` | `/api/grch38/liftover/grch37/svs` | Lift structural variants from GRCh38 to GRCh37. |
 
 ## Simple mutations
 
@@ -106,3 +108,56 @@ not a valid range on the same supported chromosome.
 
 Missing chain files, database failures and liftover process failures are server
 errors rather than per-variant failures.
+
+## Structural variants
+
+The SV body uses the same two-location representation as the Omics feed:
+
+```json
+[
+  {
+    "chromosome_1": "5",
+    "start_1": 66500000,
+    "chromosome_2": "7",
+    "start_2": 36700000,
+    "type": "CTX",
+    "inverted": false
+  }
+]
+```
+
+Supported types are `DUP`, `TDUP`, `INS`, `DEL`, `INV`, `ITX`, `CTX` and
+`COM`. Coordinates are positive, one-based values. The meaning of the two
+locations depends on the type:
+
+| Types | First location | Second location |
+| --- | --- | --- |
+| `DEL`, `TDUP`, `INS`, `INV` | First exact cut | Second exact cut |
+| `ITX`, `CTX`, `COM` | First exact cut | Second exact cut |
+| `DUP` | Copied source interval | Destination insertion cut |
+
+An exact cut at `start` is represented by the adjacent reference bases
+`start..start + 1`. Its `end` may be omitted and then defaults to `start + 1`;
+when supplied it must have that value. `ITX` requires equal chromosomes and
+`CTX` requires different chromosomes. Range-based `DEL`, `TDUP`, `INS` and
+`INV` calls require equal chromosomes and different cut positions.
+
+`DUP` is the exception: `start_1..end_1` is the complete copied source
+interval, so `end_1` is required and must be greater than `start_1`.
+`chromosome_2` and `start_2` identify the destination cut; `end_2` follows the
+normal exact-cut rule. Source and destination may be on the same or different
+chromosomes.
+
+The response uses the same `source`, `target` and `reason` structure as the
+other variant endpoints. Exact cuts are mapped with their adjacent reference
+bases and accepted only when the source and target sequences match. Continuous
+ranges additionally use the CNV mapped-base and length-ratio rules. Expected
+failure reasons are:
+
+- `coordinate_not_mapped`
+- `target_reference_mismatch`
+- `length_change_exceeded`
+- `invalid_mapping`
+
+`COM` supports the two exact cuts present in the current UNITE model. Complex
+events requiring three or more breakpoints cannot be represented by this API.
