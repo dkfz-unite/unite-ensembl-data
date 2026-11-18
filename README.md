@@ -71,13 +71,14 @@ To build an image run the following command:
 ```
 docker build \
 --build-arg USER=[github_user] \
---build-arg TOKEN=[github_token] \
+--secret id=github_token,env=GITHUB_TOKEN \
 -t unite.ensembl.data:latest .
 ```
 
-The GitHub credentials require package read access and are used to restore
-private UNITE NuGet packages. The `unite-env` build scripts pass them from
-`.env.secrets`.
+Set `GITHUB_TOKEN` in the command environment before building. The GitHub
+credentials require package read access and are mounted only while restoring
+UNITE NuGet packages. The `unite-env` build scripts read them from
+`.env.secrets` and pass the token as a BuildKit secret.
 
 All application components should run in the same docker network.
 To create common docker network if not yet available run the following command:
