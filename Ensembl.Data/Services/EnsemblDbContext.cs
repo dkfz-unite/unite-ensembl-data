@@ -15,8 +15,11 @@ public abstract class EnsemblDbContext : DbContext
 
 
     public DbSet<AttribType> AttribTypes { get; set; }
+    public DbSet<AssemblyException> AssemblyExceptions { get; set; }
+    public DbSet<AssemblyMapping> AssemblyMappings { get; set; }
     public DbSet<Biotype> Biotypes { get; set; }
     public DbSet<CoordSystem> CoordSystems { get; set; }
+    public DbSet<Dna> Dnas { get; set; }
     public DbSet<Exon> Exons { get; set; }
     public DbSet<ExonTranscript> ExonTranscripts { get; set; }
     public DbSet<ExternalDb> ExternalDbs { get; set; }

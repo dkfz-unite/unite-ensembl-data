@@ -18,6 +18,8 @@ Reasons why custom API is required:
 
 ## Dependencies
 - [MySQL](https://github.com/dkfz-unite/unite-environment/tree/main/programs/mysql) - MySQL server with Ensembl homo sapience database.
+- [UCSC liftOver](https://genome.ucsc.edu/cgi-bin/hgLiftOver) - coordinate conversion between GRCh37 and GRCh38.
+- [Unite.Essentials](https://github.com/dkfz-unite/unite-essentials) - shared enum aliases and JSON conversion.
 
 
 ## Access
@@ -36,9 +38,24 @@ ENSEMBL_SQL_HOST|SQL server host|localhost|mysql.unite.net
 ENSEMBL_SQL_PORT|SQL server port|3306|3306
 ENSEMBL_SQL_USER|SQL server user||
 ENSEMBL_SQL_PASSWORD|SQL server password||
+ENSEMBL_LIFTOVER_EXECUTABLE|Path to the UCSC liftOver executable|liftOver|liftOver
+ENSEMBL_LIFTOVER_CHAINS_PATH|Directory containing the GRCh37↔GRCh38 chain files|/chains|/chains
 
 The service uses Ensembl release 116 (the last release published on ftp.ensembl.org): databases `homo_sapiens_core_116_37` (GRCh37) and `homo_sapiens_core_116_38` (GRCh38).
-The genome build is selected per request with the `grch` parameter (`37` by default), only the database of the installation genome build has to be installed.
+Gene, transcript and protein endpoints select the build with the `/api/grch37`
+or `/api/grch38` route prefix. Routes without a build prefix remain direct
+aliases for GRCh37. Ensembl Data setup prepares the same selected annotation
+and reference-sequence tables for both builds.
+
+The [genes](Docs/api-genes.md), [transcripts](Docs/api-transcripts.md) and
+[proteins](Docs/api-proteins.md) APIs retrieve individual feature sequences by
+Ensembl ID, symbol or protein accession. They use the annotation and sequence
+tables for the requested build.
+The [variant liftover API](Docs/api-liftover.md) converts simple mutations,
+copy-number variants and structural variants in both directions. Exact variant
+breakpoints are verified against the reference sequence in both builds.
+The setup scripts are maintained in
+[unite-env/applications/unite-ensembl-data](https://github.com/dkfz-unite/unite-env/tree/liftover/applications/unite-ensembl-data).
 
 
 ## Installation
@@ -52,8 +69,16 @@ The easiest way to install the application is to use docker-compose:
 [Dockerfile](Dockerfile) is used to build an image of the application.
 To build an image run the following command:
 ```
-docker build -t unite.ensembl.data:latest .
+docker build \
+--build-arg USER=[github_user] \
+--secret id=github_token,env=GITHUB_TOKEN \
+-t unite.ensembl.data:latest .
 ```
+
+Set `GITHUB_TOKEN` in the command environment before building. The GitHub
+credentials require package read access and are mounted only while restoring
+UNITE NuGet packages. The `unite-env` build scripts read them from
+`.env.secrets` and pass the token as a BuildKit secret.
 
 All application components should run in the same docker network.
 To create common docker network if not yet available run the following command:

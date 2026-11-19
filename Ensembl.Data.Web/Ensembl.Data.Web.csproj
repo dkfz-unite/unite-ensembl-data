@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <ProjectReference Include="..\Ensembl.Data\Ensembl.Data.csproj" />
   </ItemGroup>
 </Project>

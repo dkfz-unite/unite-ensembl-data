@@ -30,7 +30,7 @@ public class TranscriptSearchService
             throw new ArgumentException("Transcript id is missing.", nameof(id));
         }
 
-        var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
+        var entity = GetById(id).FirstOrDefault();
 
         return Convert(entity, length, expand);
     }
@@ -68,7 +68,7 @@ public class TranscriptSearchService
             throw new ArgumentException("Transcript symbol is missing.", nameof(symbol));
         }
 
-        var entity = GetQuery().FirstOrDefault(entity => entity.Xref.DisplayLabel == symbol);
+        var entity = GetBySymbol(symbol).FirstOrDefault();
 
         return Convert(entity, length, expand);
     }
@@ -99,6 +99,15 @@ public class TranscriptSearchService
         return Convert(entity, length, expand);
     }
 
+    private IQueryable<Entities.Transcript> GetById(string id)
+    {
+        return GetQuery().Where(entity => entity.StableId == id);
+    }
+
+    private IQueryable<Entities.Transcript> GetBySymbol(string symbol)
+    {
+        return GetQuery().Where(entity => entity.Xref.DisplayLabel == symbol);
+    }
 
     private IQueryable<Entities.Transcript> GetQuery()
     {
