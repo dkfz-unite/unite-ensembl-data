@@ -32,7 +32,7 @@ public class GeneSearchService
             throw new ArgumentException("Gene id is missing.", nameof(id));
         }
 
-        var entity = GetQuery().FirstOrDefault(entity => entity.StableId == id);
+        var entity = GetById(id).FirstOrDefault();
 
         return Convert(entity, length, expand);
     }
@@ -70,7 +70,7 @@ public class GeneSearchService
             throw new ArgumentException("Gene symbol is missing.", nameof(symbol));
         }
 
-        var entity = GetQuery().FirstOrDefault(entity => entity.Xref.DisplayLabel == symbol);
+        var entity = GetBySymbol(symbol).FirstOrDefault();
 
         return Convert(entity, length, expand);
     }
@@ -94,6 +94,15 @@ public class GeneSearchService
         return entities.Select(entity => Convert(entity, length, expand)).ToArray();
     }
 
+    private IQueryable<Entities.Gene> GetById(string id)
+    {
+        return GetQuery().Where(entity => entity.StableId == id);
+    }
+
+    private IQueryable<Entities.Gene> GetBySymbol(string symbol)
+    {
+        return GetQuery().Where(entity => entity.Xref.DisplayLabel == symbol);
+    }
 
     private IQueryable<Entities.Gene> GetQuery()
     {

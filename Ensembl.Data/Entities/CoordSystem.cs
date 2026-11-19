@@ -21,4 +21,7 @@ public partial class CoordSystem
 
     [Column("rank")]
     public int Rank { get; set; }
+
+    [Column("attrib")]
+    public string Attrib { get; set; }
 }

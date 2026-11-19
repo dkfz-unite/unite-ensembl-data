@@ -1,13 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ensembl.Data.Entities;
 
 [Table("translation_attrib")]
+[Keyless]
 public partial class TranslationAttrib
 {
     [Column("translation_id")]
-    [Key]
     public int TranslationId { get; set; }
 
     [Column("attrib_type_id")]
@@ -15,4 +15,8 @@ public partial class TranslationAttrib
 
     [Column("value")]
     public string Value { get; set; }
+
+
+    [ForeignKey(nameof(AttribTypeId))]
+    public virtual AttribType AttribType { get; set; }
 }
